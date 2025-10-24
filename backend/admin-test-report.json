@@ -1,0 +1,24 @@
+{
+  "timestamp": "2025-10-24T19:47:01.681Z",
+  "baseUrl": "http://localhost:3000",
+  "totalTests": 3,
+  "passed": 3,
+  "failed": 0,
+  "results": [
+    {
+      "name": "Health Check",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Admin Login",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "Unauthenticated Access (should fail)",
+      "passed": true,
+      "error": null
+    }
+  ]
+}

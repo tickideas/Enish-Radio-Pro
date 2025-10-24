@@ -1,5 +1,5 @@
-const jwt = require('jsonwebtoken');
-const User = require('../models/User'); // We'll create this model later
+import jwt from 'jsonwebtoken';
+import UserModel from '../drizzle/models/User.js';
 
 const auth = async (req, res, next) => {
   try {
@@ -17,8 +17,20 @@ const auth = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
+    // Get fresh user data from database
+    const user = await UserModel.findById(decoded.id);
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        error: 'User not found or inactive'
+      });
+    }
+    
     // Add user from payload to request
-    req.user = decoded;
+    req.user = {
+      id: user.id,
+      email: user.email,
+      role: user.role
+    };
     next();
   } catch (error) {
     console.error('Auth middleware error:', error);
@@ -45,26 +57,22 @@ const auth = async (req, res, next) => {
 const adminAuth = async (req, res, next) => {
   try {
     // First run through regular auth
-    await new Promise((resolve, reject) => {
-      const middleware = require('./auth');
-      middleware(req, res, (err) => {
-        if (err) return reject(err);
-        resolve();
-      });
+    auth(req, res, (err) => {
+      if (err) return next(err);
+      
+      // Check if user has admin role
+      if (!req.user || req.user.role !== 'admin') {
+        return res.status(403).json({
+          error: 'Access denied. Admin privileges required.'
+        });
+      }
+
+      next();
     });
-
-    // Check if user has admin role
-    if (!req.user || req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        error: 'Access denied. Admin privileges required.' 
-      });
-    }
-
-    next();
   } catch (error) {
     console.error('Admin auth middleware error:', error);
-    res.status(500).json({ 
-      error: 'Server error during admin authentication' 
+    res.status(500).json({
+      error: 'Server error during admin authentication'
     });
   }
 };
@@ -80,7 +88,17 @@ const optionalAuth = async (req, res, next) => {
 
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    req.user = decoded;
+    
+    // Get user data if token is valid
+    const user = await UserModel.findById(decoded.id);
+    if (user && user.isActive) {
+      req.user = {
+        id: user.id,
+        email: user.email,
+        role: user.role
+      };
+    }
+    
     next();
   } catch (error) {
     // Just continue without user if token is invalid
@@ -88,4 +106,4 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
-module.exports = { auth, adminAuth, optionalAuth };
+export { auth, adminAuth, optionalAuth };

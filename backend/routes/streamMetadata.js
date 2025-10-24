@@ -1,42 +1,118 @@
-const express = require('express');
+import express from 'express';
+import StreamMetadataModel from '../drizzle/models/StreamMetadata.js';
+import { adminAuth } from '../middleware/auth.js';
+
 const router = express.Router();
-const { StreamMetadata } = require('../models/StreamMetadata');
-const { adminAuth } = require('../middleware/auth');
-const { Op } = require('sequelize');
 
 // GET /api/stream/metadata - Get current stream metadata (public)
 router.get('/', async (req, res) => {
   try {
-    const now = new Date();
-    const currentMetadata = await StreamMetadata.findOne({
-      where: {
-        isActive: true,
-        startTime: { [Op.lte]: now },
-        [Op.or]: [
-          { endTime: { [Op.is]: null } },
-          { endTime: { [Op.gte]: now } }
-        ]
-      },
-      order: [['startTime', 'DESC']]
-    });
+    const streamMetadata = await StreamMetadataModel.getCurrent();
     
-    if (!currentMetadata) {
-      // Return default metadata if no active track found
-      return res.json({
-        success: true,
-        data: {
-          title: 'Enish Radio Live',
-          artist: '24/7 Music Stream',
-          album: 'Live Broadcast',
-          isLive: true,
-          source: 'radioking'
-        }
+    res.json({
+      success: true,
+      data: streamMetadata
+    });
+  } catch (error) {
+    console.error('Error fetching current stream metadata:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch current stream metadata'
+    });
+  }
+});
+
+// GET /api/stream/metadata/all - Get all stream metadata (admin only)
+router.get('/all', adminAuth, async (req, res) => {
+  try {
+    const streamMetadata = await StreamMetadataModel.getAll();
+    
+    res.json({
+      success: true,
+      data: streamMetadata,
+      count: streamMetadata.length
+    });
+  } catch (error) {
+    console.error('Error fetching all stream metadata:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch all stream metadata'
+    });
+  }
+});
+
+// GET /api/stream/metadata/active - Get active stream metadata (admin only)
+router.get('/active', adminAuth, async (req, res) => {
+  try {
+    const streamMetadata = await StreamMetadataModel.getActive();
+    
+    res.json({
+      success: true,
+      data: streamMetadata,
+      count: streamMetadata.length
+    });
+  } catch (error) {
+    console.error('Error fetching active stream metadata:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch active stream metadata'
+    });
+  }
+});
+
+// GET /api/stream/metadata/current - Get currently playing track (public)
+router.get('/current', async (req, res) => {
+  try {
+    const currentTrack = await StreamMetadataModel.getCurrentlyPlaying();
+    
+    res.json({
+      success: true,
+      data: currentTrack
+    });
+  } catch (error) {
+    console.error('Error fetching currently playing track:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch currently playing track'
+    });
+  }
+});
+
+// GET /api/stream/metadata/recent - Get recent tracks (public)
+router.get('/recent', async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+    const recentTracks = await StreamMetadataModel.getRecent(limit);
+    
+    res.json({
+      success: true,
+      data: recentTracks,
+      count: recentTracks.length
+    });
+  } catch (error) {
+    console.error('Error fetching recent tracks:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch recent tracks'
+    });
+  }
+});
+
+// GET /api/stream/metadata/:id - Get single stream metadata (admin only)
+router.get('/:id', adminAuth, async (req, res) => {
+  try {
+    const streamMetadata = await StreamMetadataModel.findById(req.params.id);
+    
+    if (!streamMetadata) {
+      return res.status(404).json({
+        success: false,
+        error: 'Stream metadata not found'
       });
     }
     
     res.json({
       success: true,
-      data: currentMetadata
+      data: streamMetadata
     });
   } catch (error) {
     console.error('Error fetching stream metadata:', error);
@@ -47,120 +123,19 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/stream/metadata/history - Get recent metadata history (public)
-router.get('/history', async (req, res) => {
-  try {
-    const { limit = 10 } = req.query;
-    const metadata = await StreamMetadata.findAll({
-      where: { isActive: true },
-      order: [['startTime', 'DESC']],
-      limit: parseInt(limit),
-      attributes: ['title', 'artist', 'album', 'startTime', 'endTime']
-    });
-    
-    res.json({
-      success: true,
-      data: metadata,
-      count: metadata.length
-    });
-  } catch (error) {
-    console.error('Error fetching metadata history:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch metadata history'
-    });
-  }
-});
-
-// GET /api/stream/metadata/admin - Get all metadata (admin only)
-router.get('/admin', adminAuth, async (req, res) => {
-  try {
-    const { page = 1, limit = 20 } = req.query;
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    
-    const metadata = await StreamMetadata.findAndCountAll({
-      order: [['startTime', 'DESC']],
-      offset,
-      limit: parseInt(limit)
-    });
-    
-    const total = metadata.count;
-    
-    res.json({
-      success: true,
-      data: metadata,
-      pagination: {
-        current: parseInt(page),
-        pageSize: parseInt(limit),
-        total,
-        pages: Math.ceil(total / parseInt(limit))
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching metadata:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch metadata'
-    });
-  }
-});
-
-// GET /api/stream/metadata/:id - Get single metadata (admin only)
-router.get('/:id', adminAuth, async (req, res) => {
-  try {
-    const metadata = await StreamMetadata.findByPk(req.params.id);
-    
-    if (!metadata) {
-      return res.status(404).json({
-        success: false,
-        error: 'Metadata not found'
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: metadata
-    });
-  } catch (error) {
-    console.error('Error fetching metadata:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch metadata'
-    });
-  }
-});
-
-// POST /api/stream/metadata - Create new metadata (admin only)
+// POST /api/stream/metadata - Create new stream metadata (admin only)
 router.post('/', adminAuth, async (req, res) => {
   try {
-    const { 
-      title, 
-      artist, 
-      album, 
-      artworkUrl, 
-      duration, 
-      genre, 
-      year, 
-      source, 
-      streamUrl 
-    } = req.body;
+    const { title, artist, album, artworkUrl, duration, genre, year, isLive = true, startTime, endTime, source = 'radioking', streamUrl } = req.body;
     
-    if (!title || !artist || !source) {
+    if (!title || !artist || !startTime) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: title, artist, source'
+        error: 'Missing required fields: title, artist, startTime'
       });
     }
     
-    // Deactivate previous live tracks if this is a new live track
-    if (source === 'manual' || source === 'api') {
-      await StreamMetadata.updateMany(
-        { isLive: true, source },
-        { isLive: false, endTime: new Date() }
-      );
-    }
-    
-    const metadata = new StreamMetadata({
+    const streamData = {
       title,
       artist,
       album,
@@ -168,135 +143,98 @@ router.post('/', adminAuth, async (req, res) => {
       duration,
       genre,
       year,
+      isLive,
+      startTime: new Date(startTime),
+      endTime: endTime ? new Date(endTime) : null,
       source,
-      streamUrl,
-      startTime: new Date(),
-      isLive: true
-    });
+      streamUrl
+    };
     
-    await metadata.save();
+    const streamMetadata = await StreamMetadataModel.create(streamData);
     
     res.status(201).json({
       success: true,
-      data: metadata,
+      data: streamMetadata,
       message: 'Stream metadata created successfully'
     });
   } catch (error) {
-    console.error('Error creating metadata:', error);
+    console.error('Error creating stream metadata:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to create metadata'
+      error: 'Failed to create stream metadata'
     });
   }
 });
 
-// PUT /api/stream/metadata/:id - Update metadata (admin only)
+// PUT /api/stream/metadata/:id - Update stream metadata (admin only)
 router.put('/:id', adminAuth, async (req, res) => {
   try {
-    const { 
-      title, 
-      artist, 
-      album, 
-      artworkUrl, 
-      duration, 
-      genre, 
-      year, 
-      source, 
-      streamUrl, 
-      isActive,
-      endTime 
-    } = req.body;
+    const { title, artist, album, artworkUrl, duration, genre, year, isLive, startTime, endTime, source, streamUrl, isActive } = req.body;
     
-    const metadata = await StreamMetadata.findByPk(req.params.id);
-    if (!metadata) {
+    const streamMetadata = await StreamMetadataModel.findById(req.params.id);
+    if (!streamMetadata) {
       return res.status(404).json({
         success: false,
-        error: 'Metadata not found'
+        error: 'Stream metadata not found'
       });
     }
     
     // Update fields
-    if (title) metadata.title = title;
-    if (artist) metadata.artist = artist;
-    if (album) metadata.album = album;
-    if (artworkUrl) metadata.artworkUrl = artworkUrl;
-    if (duration) metadata.duration = duration;
-    if (genre) metadata.genre = genre;
-    if (year) metadata.year = year;
-    if (source) metadata.source = source;
-    if (streamUrl) metadata.streamUrl = streamUrl;
-    if (isActive !== undefined) metadata.isActive = isActive;
-    if (endTime) metadata.endTime = new Date(endTime);
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (artist) updateData.artist = artist;
+    if (album) updateData.album = album;
+    if (artworkUrl) updateData.artworkUrl = artworkUrl;
+    if (duration) updateData.duration = duration;
+    if (genre) updateData.genre = genre;
+    if (year) updateData.year = year;
+    if (isLive !== undefined) updateData.isLive = isLive;
+    if (startTime) updateData.startTime = new Date(startTime);
+    if (endTime) updateData.endTime = endTime ? new Date(endTime) : null;
+    if (source) updateData.source = source;
+    if (streamUrl) updateData.streamUrl = streamUrl;
+    if (isActive !== undefined) updateData.isActive = isActive;
     
-    await metadata.save();
+    const updatedStreamMetadata = await StreamMetadataModel.update(req.params.id, updateData);
     
     res.json({
       success: true,
-      data: metadata,
+      data: updatedStreamMetadata,
       message: 'Stream metadata updated successfully'
     });
   } catch (error) {
-    console.error('Error updating metadata:', error);
+    console.error('Error updating stream metadata:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to update metadata'
+      error: 'Failed to update stream metadata'
     });
   }
 });
 
-// DELETE /api/stream/metadata/:id - Delete metadata (admin only)
+// DELETE /api/stream/metadata/:id - Delete stream metadata (admin only)
 router.delete('/:id', adminAuth, async (req, res) => {
   try {
-    const metadata = await StreamMetadata.findByPk(req.params.id);
-    if (!metadata) {
+    const streamMetadata = await StreamMetadataModel.findById(req.params.id);
+    if (!streamMetadata) {
       return res.status(404).json({
         success: false,
-        error: 'Metadata not found'
+        error: 'Stream metadata not found'
       });
     }
     
-    await StreamMetadata.findByIdAndDelete(req.params.id);
+    await StreamMetadataModel.delete(req.params.id);
     
     res.json({
       success: true,
       message: 'Stream metadata deleted successfully'
     });
   } catch (error) {
-    console.error('Error deleting metadata:', error);
+    console.error('Error deleting stream metadata:', error);
     res.status(500).json({
       success: false,
-      error: 'Failed to delete metadata'
+      error: 'Failed to delete stream metadata'
     });
   }
 });
 
-// POST /api/stream/metadata/:id/end - End current track (admin only)
-router.post('/:id/end', adminAuth, async (req, res) => {
-  try {
-    const metadata = await StreamMetadata.findByPk(req.params.id);
-    if (!metadata) {
-      return res.status(404).json({
-        success: false,
-        error: 'Metadata not found'
-      });
-    }
-    
-    metadata.isLive = false;
-    metadata.endTime = new Date();
-    await metadata.save();
-    
-    res.json({
-      success: true,
-      data: metadata,
-      message: 'Track ended successfully'
-    });
-  } catch (error) {
-    console.error('Error ending track:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to end track'
-    });
-  }
-});
-
-module.exports = router;
+export default router;
