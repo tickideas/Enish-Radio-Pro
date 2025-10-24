@@ -226,7 +226,7 @@
             <button class="nav-tab active" onclick="showTab('dashboard', event)">Dashboard</button>
             <button class="nav-tab" onclick="showTab('social-links', event)">Social Links</button>
             <button class="nav-tab" onclick="showTab('ad-banners', event)">Ad Banners</button>
-            <button class="nav-tab" onclick="showTab('stream-metadata', event)">Stream Metadata</button>
+            <!-- Stream Metadata is now managed by RadioKing API -->
             <button class="nav-tab" onclick="showTab('user-management', event)">User Management</button>
             <button class="nav-tab" onclick="showTab('analytics', event)">Analytics</button>
         </div>
@@ -242,10 +242,6 @@
                 <div class="stat-card">
                     <div class="stat-number" id="totalAdBanners">-</div>
                     <div class="stat-label">Active Ad Banners</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-number" id="totalTracks">-</div>
-                    <div class="stat-label">Stream Tracks</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="totalUsers">-</div>
@@ -270,13 +266,15 @@
             </div>
         </div>
         
-        <!-- Stream Metadata Tab -->
+        <!-- Stream Metadata Tab - Now managed by RadioKing API -->
+        <!--
         <div id="stream-metadata" class="tab-content">
             <h2>Stream Metadata Management</h2>
             <div id="streamMetadataContent">
                 <div class="loading">Loading stream metadata...</div>
             </div>
         </div>
+        -->
         
         <!-- User Management Tab -->
         <div id="user-management" class="tab-content">
@@ -320,30 +318,12 @@
                         </div>
                     </div>
                 </div>
-                <div class="analytics-card">
-                    <h3>Stream Data</h3>
-                    <div class="analytics-stats">
-                        <div class="stat">
-                            <span class="stat-number" id="analytics-stream-total">-</span>
-                            <span class="stat-label">Total Tracks</span>
-                        </div>
-                        <div class="stat">
-                            <span class="stat-number" id="analytics-stream-active">-</span>
-                            <span class="stat-label">Active Tracks</span>
-                        </div>
-                    </div>
-                </div>
+
             </div>
             <div class="analytics-section">
                 <h3>Recent Ad Performance</h3>
                 <div id="adPerformanceContent">
                     <div class="loading">Loading ad performance data...</div>
-                </div>
-            </div>
-            <div class="analytics-section">
-                <h3>Stream History</h3>
-                <div id="streamHistoryContent">
-                    <div class="loading">Loading stream history...</div>
                 </div>
             </div>
         </div>
@@ -404,9 +384,10 @@
                 case 'ad-banners':
                     await loadAdBanners();
                     break;
-                case 'stream-metadata':
-                    await loadStreamMetadata();
-                    break;
+                // Stream metadata is now managed by RadioKing API
+                // case 'stream-metadata':
+                //     await loadStreamMetadata();
+                //     break;
                 case 'user-management':
                     await loadUsers();
                     break;
@@ -456,10 +437,6 @@
                 const adBanners = await apiCall('/ads/admin');
                 const activeAds = adBanners.data?.filter(ad => ad.isActive) || [];
                 document.getElementById('totalAdBanners').textContent = activeAds.length;
-                
-                // Load stream metadata count
-                const streamMetadata = await apiCall('/stream/metadata/admin');
-                document.getElementById('totalTracks').textContent = streamMetadata.data?.length || 0;
                 
                 // Load users count
                 const users = await apiCall('/auth/users');
@@ -584,63 +561,63 @@
             }
         }
         
-        // Load stream metadata
-        async function loadStreamMetadata() {
-            try {
-                const response = await apiCall('/stream/metadata/admin');
-                const streamMetadata = response.data || [];
-                const content = document.getElementById('streamMetadataContent');
-                
-                if (streamMetadata.length === 0) {
-                    content.innerHTML = '<p>No stream metadata found.</p><button class="btn" onclick="openAddStreamMetadataModal()">Add Track</button>';
-                    return;
-                }
-                
-                let html = `
-                    <div style="margin-bottom: 20px;">
-                        <button class="btn" onclick="openAddStreamMetadataModal()">Add Track</button>
-                    </div>
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Artist</th>
-                                <th>Album</th>
-                                <th>Duration</th>
-                                <th>Live</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-                
-                streamMetadata.forEach(metadata => {
-                    html += `
-                        <tr>
-                            <td>${metadata.title}</td>
-                            <td>${metadata.artist}</td>
-                            <td>${metadata.album || '-'}</td>
-                            <td>${metadata.duration ? formatDuration(metadata.duration) : '-'}</td>
-                            <td>
-                                <span class="status ${metadata.isLive ? 'active' : 'inactive'}">
-                                    ${metadata.isLive ? 'Yes' : 'No'}
-                                </span>
-                            </td>
-                            <td>
-                                <button class="btn btn-sm" onclick="openEditStreamMetadataModal('${metadata.id}')">Edit</button>
-                                <button class="btn btn-danger btn-sm" onclick="deleteStreamMetadata('${metadata.id}', '${metadata.title}')">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-                
-                html += '</tbody></table>';
-                content.innerHTML = html;
-            } catch (error) {
-                document.getElementById('streamMetadataContent').innerHTML = '<p class="message error">Error loading stream metadata.</p>';
-                showNotification('Error loading stream metadata', 'error');
-            }
-        }
+        // Stream metadata is now managed by RadioKing API
+        // async function loadStreamMetadata() {
+        //     try {
+        //         const response = await apiCall('/stream/metadata/admin');
+        //         const streamMetadata = response.data || [];
+        //         const content = document.getElementById('streamMetadataContent');
+        //         
+        //         if (streamMetadata.length === 0) {
+        //             content.innerHTML = '<p>No stream metadata found.</p><button class="btn" onclick="openAddStreamMetadataModal()">Add Track</button>';
+        //             return;
+        //         }
+        //         
+        //         let html = `
+        //             <div style="margin-bottom: 20px;">
+        //                 <button class="btn" onclick="openAddStreamMetadataModal()">Add Track</button>
+        //             </div>
+        //             <table class="table">
+        //                 <thead>
+        //                     <tr>
+        //                         <th>Title</th>
+        //                         <th>Artist</th>
+        //                         <th>Album</th>
+        //                         <th>Duration</th>
+        //                         <th>Live</th>
+        //                         <th>Actions</th>
+        //                     </tr>
+        //                 </thead>
+        //                 <tbody>
+        //         `;
+        //         
+        //         streamMetadata.forEach(metadata => {
+        //             html += `
+        //                 <tr>
+        //                     <td>${metadata.title}</td>
+        //                     <td>${metadata.artist}</td>
+        //                     <td>${metadata.album || '-'}</td>
+        //                     <td>${metadata.duration ? formatDuration(metadata.duration) : '-'}</td>
+        //                     <td>
+        //                         <span class="status ${metadata.isLive ? 'active' : 'inactive'}">
+        //                             ${metadata.isLive ? 'Yes' : 'No'}
+        //                         </span>
+        //                     </td>
+        //                     <td>
+        //                         <button class="btn btn-sm" onclick="openEditStreamMetadataModal('${metadata.id}')">Edit</button>
+        //                         <button class="btn btn-danger btn-sm" onclick="deleteStreamMetadata('${metadata.id}', '${metadata.title}')">Delete</button>
+        //                     </td>
+        //                 </tr>
+        //             `;
+        //         });
+        //         
+        //         html += '</tbody></table>';
+        //         content.innerHTML = html;
+        //     } catch (error) {
+        //         document.getElementById('streamMetadataContent').innerHTML = '<p class="message error">Error loading stream metadata.</p>';
+        //         showNotification('Error loading stream metadata', 'error');
+        //     }
+        // }
         
         // Load users
         async function loadUsers() {
@@ -803,7 +780,8 @@
             showNotification('Edit functionality coming soon', 'info');
         }
         
-        // Stream Metadata Modals
+        // Stream Metadata Modals - Now managed by RadioKing API
+        /*
         function openAddStreamMetadataModal() {
             const content = `
                 <form onsubmit="addStreamMetadata(event)">
@@ -851,9 +829,9 @@
             openModal('Add Stream Track', content);
         }
         
-        function openEditStreamMetadataModal(id) {
-            showNotification('Edit functionality coming soon', 'info');
-        }
+        // function openEditStreamMetadataModal(id) {
+        //     showNotification('Edit functionality coming soon', 'info');
+        // }
         
         // CRUD Operations
         async function addSocialLink(event) {
@@ -897,27 +875,27 @@
             }
         }
         
-        async function addStreamMetadata(event) {
-            event.preventDefault();
-            try {
-                const data = {
-                    title: document.getElementById('title').value,
-                    artist: document.getElementById('artist').value,
-                    album: document.getElementById('album').value,
-                    duration: parseInt(document.getElementById('duration').value),
-                    artworkUrl: document.getElementById('artworkUrl').value,
-                    source: document.getElementById('source').value,
-                    isLive: document.getElementById('isLive').value === 'true'
-                };
-                
-                await apiCall('/stream/metadata', 'POST', data);
-                closeModal();
-                showNotification('Stream metadata added successfully', 'success');
-                loadStreamMetadata();
-            } catch (error) {
-                showNotification('Error adding stream metadata', 'error');
-            }
-        }
+        // async function addStreamMetadata(event) {
+        //     event.preventDefault();
+        //     try {
+        //         const data = {
+        //             title: document.getElementById('title').value,
+        //             artist: document.getElementById('artist').value,
+        //             album: document.getElementById('album').value,
+        //             duration: parseInt(document.getElementById('duration').value),
+        //             artworkUrl: document.getElementById('artworkUrl').value,
+        //             source: document.getElementById('source').value,
+        //             isLive: document.getElementById('isLive').value === 'true'
+        //         };
+        //         
+        //         await apiCall('/stream/metadata', 'POST', data);
+        //         closeModal();
+        //         showNotification('Stream metadata added successfully', 'success');
+        //         loadStreamMetadata();
+        //     } catch (error) {
+        //         showNotification('Error adding stream metadata', 'error');
+        //     }
+        // }
         
         // Delete functions with confirmation
         async function deleteSocialLink(id, platform) {
@@ -955,6 +933,7 @@
                 }
             }
         }
+        */
         
         async function deleteUser(id, email) {
             if (confirm(`Are you sure you want to delete user ${email}?`)) {
@@ -996,20 +975,17 @@
                 
                 if (overview) {
                     // Update overview stats
-                    document.getElementById('analytics-social-total').textContent = overview.socialLinks.total;
-                    document.getElementById('analytics-social-active').textContent = overview.socialLinks.active;
-                    document.getElementById('analytics-ads-total').textContent = overview.ads.total;
-                    document.getElementById('analytics-ads-clicks').textContent = overview.ads.totalClicks;
-                    document.getElementById('analytics-ads-weekly').textContent = overview.ads.weeklyClicks;
-                    document.getElementById('analytics-stream-total').textContent = overview.stream.totalTracks;
-                    document.getElementById('analytics-stream-active').textContent = overview.stream.activeTracks;
+                    document.getElementById('analytics-social-total').textContent = overview.socialLinks?.total || 0;
+                    document.getElementById('analytics-social-active').textContent = overview.socialLinks?.active || 0;
+                    document.getElementById('analytics-ads-total').textContent = overview.ads?.total || 0;
+                    document.getElementById('analytics-ads-clicks').textContent = overview.ads?.totalClicks || 0;
+                    document.getElementById('analytics-ads-weekly').textContent = overview.ads?.weeklyClicks || 0;
+                    
+
                 }
                 
                 // Load ad performance data
                 await loadAdPerformance();
-                
-                // Load stream history
-                await loadStreamHistory();
                 
             } catch (error) {
                 console.error('Error loading analytics:', error);
@@ -1058,52 +1034,7 @@
             }
         }
         
-        // Load stream history
-        async function loadStreamHistory() {
-            try {
-                const response = await apiCall('/analytics/stream-history');
-                const streamHistory = response.data || [];
-                const content = document.getElementById('streamHistoryContent');
-                
-                if (streamHistory.length === 0) {
-                    content.innerHTML = '<p>No stream history available.</p>';
-                    return;
-                }
-                
-                let html = `
-                    <table class="table">
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Artist</th>
-                                <th>Album</th>
-                                <th>Duration</th>
-                                <th>Start Time</th>
-                                <th>Live</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                `;
-                
-                streamHistory.forEach(track => {
-                    html += `
-                        <tr>
-                            <td>${track.title}</td>
-                            <td>${track.artist}</td>
-                            <td>${track.album || '-'}</td>
-                            <td>${track.duration ? formatDuration(track.duration) : '-'}</td>
-                            <td>${new Date(track.startTime).toLocaleString()}</td>
-                            <td>${track.isLive ? 'Yes' : 'No'}</td>
-                        </tr>
-                    `;
-                });
-                
-                html += '</tbody></table>';
-                content.innerHTML = html;
-            } catch (error) {
-                document.getElementById('streamHistoryContent').innerHTML = '<p class="message error">Error loading stream history.</p>';
-            }
-        }
+
         
         // Notification system
         function showNotification(message, type = 'info') {

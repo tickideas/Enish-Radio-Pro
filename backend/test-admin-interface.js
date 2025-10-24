@@ -59,7 +59,6 @@ class AdminInterfaceTester {
                 await this.addTest('Get Users (Auth)', () => this.testGetUsers());
                 await this.addTest('Get Social Links (Auth)', () => this.testGetSocialLinks());
                 await this.addTest('Get Ad Banners (Auth)', () => this.testGetAdBanners());
-                await this.addTest('Get Stream Metadata (Auth)', () => this.testGetStreamMetadata());
                 await this.addTest('Get Analytics (Auth)', () => this.testGetAnalytics());
             }
             
@@ -166,22 +165,6 @@ class AdminInterfaceTester {
             this.log(`Retrieved ${response.data.data.length} ad banners`, 'success');
         } else {
             throw new Error('Failed to get ad banners');
-        }
-    }
-
-    async testGetStreamMetadata() {
-        if (!this.token) {
-            throw new Error('No auth token available');
-        }
-        
-        const response = await axios.get(`${BASE_URL}/api/stream/metadata/admin`, {
-            headers: { Authorization: `Bearer ${this.token}` }
-        });
-        
-        if (response.data.success && Array.isArray(response.data.data)) {
-            this.log(`Retrieved ${response.data.data.length} stream metadata entries`, 'success');
-        } else {
-            throw new Error('Failed to get stream metadata');
         }
     }
 

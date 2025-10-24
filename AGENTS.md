@@ -13,26 +13,29 @@ This document provides comprehensive guidelines for AI coding agents working on 
 ### Technology Stack
 
 #### Mobile App (Expo/React Native)
-- **Core**: React Native 0.74+, Expo SDK 54
-- **Navigation**: React Navigation 6.x (Drawer, Stack, Tabs)
-- **UI Components**: React Native Elements, NativeBase
-- **Audio**: Expo Audio, expo-av
-- **State Management**: React Context + Redux Toolkit
-- **Storage**: AsyncStorage
-- **HTTP Client**: Axios
-- **Animations**: React Native Reanimated 3
-- **Icons**: @expo/vector-icons, react-native-vector-icons
-- **TypeScript**: Strict mode enabled
+- **Core**: React Native 0.81.5, Expo SDK 54
+- **Navigation**: React Navigation 7.x (Drawer, Stack, Tabs)
+- **UI Components**: React Native Elements, React Native Reanimated
+- **Audio**: Expo Audio 1.0.13, expo-av 16.0.7
+- **State Management**: React Context + Custom Hooks
+- **Storage**: AsyncStorage 2.2.0
+- **HTTP Client**: Axios 1.12.2
+- **Animations**: React Native Reanimated 4.1.1
+- **Icons**: @expo/vector-icons 15.0.3, react-native-vector-icons 10.3.0
+- **TypeScript**: Strict mode enabled (TypeScript 5.9.2)
+- **Router**: Expo Router 6.0.13
+- **Build System**: EAS CLI 16.24.1
 
 #### Backend
 - **Runtime**: Node.js 20+
-- **Framework**: Hono (Node runtime)
-- **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT + bcryptjs
-- **File Storage**: Cloudinary integration
+- **Framework**: Hono 4.6.8 (Node runtime)
+- **Database**: PostgreSQL with Drizzle ORM 0.44.7
+- **Authentication**: JWT + bcryptjs 3.0.2
+- **File Storage**: Cloudinary 2.8.0 integration
 - **Security**: Secure Headers (hono/secure-headers), CORS, Rate Limiting
 - **Logging**: Hono logger
-- **Development**: Nodemon for hot reload
+- **Development**: Nodemon 3.1.10 for hot reload
+- **Server**: @hono/node-server 1.13.0
 
 ### Project Structure
 
@@ -40,17 +43,40 @@ This document provides comprehensive guidelines for AI coding agents working on 
 Enish-Radio-Pro/
 ├── backend/                 # Node.js Hono API server
 │   ├── drizzle/            # Database schema and models
-│   ├── routes/             # API route handlers
+│   │   ├── schema.js        # Drizzle ORM table definitions
+│   │   ├── db.js           # Database connection and pool
+│   │   └── models/         # Data models (User, SocialLink, AdBanner)
+│   ├── routes/             # API route handlers (legacy)
 │   ├── middleware/         # Authentication and security
 │   ├── public/             # Static files and admin panel
-│   └── scripts/            # Database utilities
+│   │   └── admin/          # Admin dashboard HTML/CSS/JS
+│   ├── scripts/            # Database utilities
+│   │   ├── createSchema.js # Database schema creation
+│   │   ├── seedDatabase.js # Test data seeding
+│   │   └── seedAdmin.js    # Admin user creation
+│   ├── server.hono.js      # Main Hono server (current)
+│   ├── server.js           # Legacy Express server
+│   └── test-admin-interface.js # Admin interface testing
 ├── mobile-app/             # Expo React Native application
-│   ├── app/                # Main application components
+│   ├── app/                # Main application components (Expo Router)
+│   │   ├── _layout.tsx     # Root layout with navigation
+│   │   ├── index.tsx       # Home screen with audio player
+│   │   ├── settings.tsx    # Settings screen
+│   │   ├── sleep-timer.tsx # Sleep timer functionality
+│   │   ├── about.tsx       # About screen
+│   │   └── privacy.tsx     # Privacy policy screen
 │   ├── components/         # Reusable UI components
 │   ├── constants/          # App configuration and constants
+│   │   ├── env.ts          # Environment configuration
+│   │   ├── env.development.ts # Development API URLs
+│   │   └── env.production.ts  # Production API URLs
 │   ├── hooks/              # Custom React hooks
+│   │   └── useAudioPlayer.ts # Audio player state management
+│   ├── contexts/           # React contexts
+│   │   └── AudioPlayerContext.tsx # Audio player context
 │   ├── services/           # API clients and utilities
-│   └── assets/             # Images and static assets
+│   ├── assets/             # Images and static assets
+│   └── app.json            # Expo app configuration
 └── AGENTS.md              # This guidelines document
 ```
 
@@ -200,10 +226,12 @@ import UserModel from './drizzle/models/User.js';
 ### Type Guidelines
 
 #### Mobile App (TypeScript)
-- **Strict Mode**: All TypeScript files must use strict mode
+- **Strict Mode**: All TypeScript files must use strict mode (configured in tsconfig.json)
 - **Type Imports**: Use type-only imports when possible
 - **Component Props**: Always define prop interfaces
 - **API Responses**: Create type definitions for all API responses
+- **Environment Config**: Use TypeScript-based environment configuration (no .env files)
+- **Path Aliases**: Use `@/*` path alias for imports from project root
 
 ```typescript
 // Good: Type-only import
@@ -231,7 +259,9 @@ interface SocialLink {
 #### Backend (JavaScript with JSDoc)
 - **JSDoc Comments**: Use JSDoc for function parameters and return types
 - **Type Checking**: Enable TypeScript checking in VS Code for JavaScript files
-- **Schema Validation**: Use database schema for type validation
+- **Schema Validation**: Use Drizzle ORM schema for type validation
+- **Database Models**: Use Drizzle ORM model classes for data access
+- **Error Handling**: Standardized error response format with consistent JSON shape
 
 ```javascript
 /**
@@ -395,9 +425,55 @@ Both frontend and backend should use consistent error response formats:
 #### Backend Deployment
 - **Environment Variables**: Never commit sensitive data to version control
 - **Database Migrations**: Test migrations in staging before production
-- **Health Checks**: Implement proper health check endpoints
+- **Health Checks**: Implement proper health check endpoints (available at `/api/health`)
 - **Security Headers**: Configure security headers and CORS properly
-- **Rate Limiting**: Adjust rate limits based on expected traffic
+- **Rate Limiting**: Adjust rate limits based on expected traffic (currently 100 req/15min per IP)
+- **Database Schema**: Uses Drizzle ORM with PostgreSQL enums for type safety
+
+### Database Schema
+
+The application uses **Drizzle ORM** with PostgreSQL and defines the following tables:
+
+#### Core Tables
+
+**Users Table** (`users`)
+- `id` (UUID, Primary Key): Unique user identifier
+- `email` (VARCHAR): User email (unique)
+- `password` (VARCHAR): Hashed password
+- `role` (ENUM): User role ('admin', 'moderator')
+- `isActive` (BOOLEAN): Account status
+- `lastLogin` (TIMESTAMP): Last login timestamp
+- `createdAt`, `updatedAt` (TIMESTAMP): Audit timestamps
+
+**Social Links Table** (`socialLinks`)
+- `id` (UUID, Primary Key): Unique link identifier
+- `platform` (ENUM): Social platform ('facebook', 'twitter', 'instagram', 'youtube', 'website', 'tiktok', 'linkedin')
+- `url` (VARCHAR): Social media URL
+- `displayName` (VARCHAR): Display name for the link
+- `icon` (VARCHAR): Icon identifier
+- `isActive` (BOOLEAN): Link visibility status
+- `order` (INTEGER): Display order
+- `createdAt`, `updatedAt` (TIMESTAMP): Audit timestamps
+
+**Ad Banners Table** (`adBanners`)
+- `id` (UUID, Primary Key): Unique banner identifier
+- `title` (VARCHAR): Banner title
+- `imageUrl` (VARCHAR): Cloudinary image URL
+- `cloudinaryPublicId` (VARCHAR): Cloudinary public ID for deletion
+- `targetUrl` (VARCHAR): Click-through URL
+- `description` (TEXT): Optional description
+- `isActive` (BOOLEAN): Banner visibility status
+- `startDate`, `endDate` (TIMESTAMP): Campaign duration
+- `clickCount`, `impressionCount` (INTEGER): Analytics counters
+- `priority` (INTEGER): Display priority
+- `createdAt`, `updatedAt` (TIMESTAMP): Audit timestamps
+
+#### Key Features
+- **PostgreSQL Enums**: Used for `user_role`, `social_link_platform`, and `stream_source` for type safety
+- **UUID Primary Keys**: All tables use UUID primary keys with `defaultRandom()`
+- **Timestamps**: All tables include `createdAt` and `updatedAt` audit fields
+- **Soft Deletes**: Uses `isActive` boolean flags for soft deletion
+- **Unique Constraints**: Email uniqueness for users, platform uniqueness for social links
 
 ### API Integration
 
@@ -435,6 +511,37 @@ export const DEVELOPMENT_API_URL = 'http://YOUR_IP_ADDRESS:3000/api';
 ```
 
 **Note**: Do not use `.env` files for React Native/Expo apps. The TypeScript-based configuration works natively without extra dependencies and provides type safety.
+
+#### Backend API Structure
+
+The backend uses Hono framework with the following API structure:
+
+```
+/api/
+├── health              # Health check endpoint
+├── auth/               # Authentication routes
+│   ├── login          # User login
+│   ├── register       # User registration (admin only)
+│   ├── verify         # Token verification
+│   ├── refresh        # Token refresh
+│   └── users          # User management (admin only)
+├── social-links/       # Social media links management
+│   ├── active         # Public active social links
+│   └── admin          # Admin management routes
+├── ads/               # Advertisement banner management
+│   ├── admin          # Admin management routes
+│   └── :id/click      # Click tracking
+└── analytics/         # Analytics and reporting
+    ├── overview       # Dashboard overview data
+    └── ad-clicks      # Ad click analytics
+```
+
+**Key Features**:
+- JWT-based authentication with role-based access control
+- Rate limiting (100 requests per 15-minute window per IP)
+- Cloudinary integration for image uploads
+- Comprehensive error handling with standardized JSON responses
+- Admin dashboard at `/admin/` for content management
 
 #### Authentication
 - **JWT Tokens**: Backend uses JWT for authentication

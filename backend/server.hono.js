@@ -14,7 +14,6 @@ import db, { pool, testConnection, syncSchema } from './drizzle/db.js'
 import UserModel from './drizzle/models/User.js'
 import SocialLinkModel from './drizzle/models/SocialLink.js'
 import AdBannerModel from './drizzle/models/AdBanner.js'
-import StreamMetadataModel from './drizzle/models/StreamMetadata.js'
 
 // Load env
 dotenv.config()
@@ -692,153 +691,6 @@ app.post('/api/ads/:id/click', async (c) => {
   }
 })
 
-// ===== Stream Metadata =====
-app.get('/api/stream/metadata', async (c) => {
-  try {
-    const streamMetadata = await StreamMetadataModel.getCurrent()
-    return c.json({ success: true, data: streamMetadata })
-  } catch (error) {
-    console.error('Error fetching current stream metadata:', error)
-    return c.json({ success: false, error: 'Failed to fetch current stream metadata' }, 500)
-  }
-})
-
-app.get('/api/stream/metadata/all', requireAdmin(), async (c) => {
-  try {
-    const streamMetadata = await StreamMetadataModel.getAll()
-    return c.json({ success: true, data: streamMetadata, count: streamMetadata.length })
-  } catch (error) {
-    console.error('Error fetching all stream metadata:', error)
-    return c.json({ success: false, error: 'Failed to fetch all stream metadata' }, 500)
-  }
-})
-
-app.get('/api/stream/metadata/active', requireAdmin(), async (c) => {
-  try {
-    const streamMetadata = await StreamMetadataModel.getActive()
-    return c.json({ success: true, data: streamMetadata, count: streamMetadata.length })
-  } catch (error) {
-    console.error('Error fetching active stream metadata:', error)
-    return c.json({ success: false, error: 'Failed to fetch active stream metadata' }, 500)
-  }
-})
-
-app.get('/api/stream/metadata/admin', requireAdmin(), async (c) => {
-  try {
-    const streamMetadata = await StreamMetadataModel.getAll()
-    return c.json({ success: true, data: streamMetadata, count: streamMetadata.length })
-  } catch (error) {
-    console.error('Error fetching stream metadata for admin:', error)
-    return c.json({ success: false, error: 'Failed to fetch stream metadata for admin dashboard' }, 500)
-  }
-})
-
-app.get('/api/stream/metadata/current', async (c) => {
-  try {
-    const currentTrack = await StreamMetadataModel.getCurrentlyPlaying()
-    return c.json({ success: true, data: currentTrack })
-  } catch (error) {
-    console.error('Error fetching currently playing track:', error)
-    return c.json({ success: false, error: 'Failed to fetch currently playing track' }, 500)
-  }
-})
-
-app.get('/api/stream/metadata/recent', async (c) => {
-  try {
-    const url = new URL(c.req.url)
-    const limit = parseInt(url.searchParams.get('limit') || '10', 10)
-    const recentTracks = await StreamMetadataModel.getRecent(limit)
-    return c.json({ success: true, data: recentTracks, count: recentTracks.length })
-  } catch (error) {
-    console.error('Error fetching recent tracks:', error)
-    return c.json({ success: false, error: 'Failed to fetch recent tracks' }, 500)
-  }
-})
-
-app.get('/api/stream/metadata/:id', requireAdmin(), async (c) => {
-  try {
-    const { id } = c.req.param()
-    const streamMetadata = await StreamMetadataModel.findById(id)
-    if (!streamMetadata) return c.json({ success: false, error: 'Stream metadata not found' }, 404)
-    return c.json({ success: true, data: streamMetadata })
-  } catch (error) {
-    console.error('Error fetching stream metadata:', error)
-    return c.json({ success: false, error: 'Failed to fetch stream metadata' }, 500)
-  }
-})
-
-app.post('/api/stream/metadata', requireAdmin(), async (c) => {
-  try {
-    const { title, artist, album, artworkUrl, duration, genre, year, isLive = true, startTime, endTime, source = 'radioking', streamUrl } = await json(c)
-    if (!title || !artist || !startTime) return c.json({ success: false, error: 'Missing required fields: title, artist, startTime' }, 400)
-
-    const streamData = {
-      title,
-      artist,
-      album,
-      artworkUrl,
-      duration,
-      genre,
-      year,
-      isLive,
-      startTime: new Date(startTime),
-      endTime: endTime ? new Date(endTime) : null,
-      source,
-      streamUrl,
-    }
-    const streamMetadata = await StreamMetadataModel.create(streamData)
-    return c.json({ success: true, data: streamMetadata, message: 'Stream metadata created successfully' }, 201)
-  } catch (error) {
-    console.error('Error creating stream metadata:', error)
-    return c.json({ success: false, error: 'Failed to create stream metadata' }, 500)
-  }
-})
-
-app.put('/api/stream/metadata/:id', requireAdmin(), async (c) => {
-  try {
-    const { id } = c.req.param()
-    const { title, artist, album, artworkUrl, duration, genre, year, isLive, startTime, endTime, source, streamUrl, isActive } = await json(c)
-
-    const current = await StreamMetadataModel.findById(id)
-    if (!current) return c.json({ success: false, error: 'Stream metadata not found' }, 404)
-
-    const updateData = {}
-    if (title) updateData.title = title
-    if (artist) updateData.artist = artist
-    if (album) updateData.album = album
-    if (artworkUrl) updateData.artworkUrl = artworkUrl
-    if (duration) updateData.duration = duration
-    if (genre) updateData.genre = genre
-    if (year) updateData.year = year
-    if (isLive !== undefined) updateData.isLive = isLive
-    if (startTime) updateData.startTime = new Date(startTime)
-    if (endTime) updateData.endTime = endTime ? new Date(endTime) : null
-    if (source) updateData.source = source
-    if (streamUrl) updateData.streamUrl = streamUrl
-    if (isActive !== undefined) updateData.isActive = isActive
-
-    const updated = await StreamMetadataModel.update(id, updateData)
-    return c.json({ success: true, data: updated, message: 'Stream metadata updated successfully' })
-  } catch (error) {
-    console.error('Error updating stream metadata:', error)
-    return c.json({ success: false, error: 'Failed to update stream metadata' }, 500)
-  }
-})
-
-app.delete('/api/stream/metadata/:id', requireAdmin(), async (c) => {
-  try {
-    const { id } = c.req.param()
-    const current = await StreamMetadataModel.findById(id)
-    if (!current) return c.json({ success: false, error: 'Stream metadata not found' }, 404)
-
-    await StreamMetadataModel.delete(id)
-    return c.json({ success: true, message: 'Stream metadata deleted successfully' })
-  } catch (error) {
-    console.error('Error deleting stream metadata:', error)
-    return c.json({ success: false, error: 'Failed to delete stream metadata' }, 500)
-  }
-})
-
 // ===== Analytics =====
 app.get('/api/analytics/overview', requireAdmin(), async (c) => {
   try {
@@ -857,10 +709,6 @@ app.get('/api/analytics/overview', requireAdmin(), async (c) => {
     const activeAds = totalAds.filter((a) => a.isActive)
     const totalClicks = totalAds.reduce((sum, a) => sum + a.clickCount, 0)
 
-    const totalTracks = await StreamMetadataModel.getAll()
-    const activeTracks = totalTracks.filter((t) => t.isLive)
-    const recentTracks = totalTracks.filter((t) => t.startTime >= startOfWeek)
-
     const weeklyClicks = totalAds.filter((a) => a.createdAt >= startOfWeek).reduce((sum, a) => sum + a.clickCount, 0)
     const monthlyClicks = totalAds.filter((a) => a.createdAt >= startOfMonth).reduce((sum, a) => sum + a.clickCount, 0)
 
@@ -869,7 +717,6 @@ app.get('/api/analytics/overview', requireAdmin(), async (c) => {
       data: {
         socialLinks: { total: totalSocialLinks.length, active: activeSocialLinks.length },
         ads: { total: totalAds.length, active: activeAds.length, totalClicks, weeklyClicks, monthlyClicks },
-        stream: { totalTracks: totalTracks.length, activeTracks: activeTracks.length, recentTracks: recentTracks.length },
         generatedAt: new Date().toISOString(),
       },
     })
@@ -910,31 +757,6 @@ app.get('/api/analytics/ad-clicks', requireAdmin(), async (c) => {
   } catch (error) {
     console.error('Error fetching ad clicks analytics:', error)
     return c.json({ success: false, error: 'Failed to fetch ad clicks analytics' }, 500)
-  }
-})
-
-app.get('/api/analytics/stream-history', requireAdmin(), async (c) => {
-  try {
-    const url = new URL(c.req.url)
-    const limit = parseInt(url.searchParams.get('limit') || '50', 10)
-    const allStreamData = await StreamMetadataModel.getAll()
-    const activeStreamData = allStreamData.filter((t) => t.isActive)
-    const sortedTracks = activeStreamData.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)).slice(0, limit)
-    return c.json({
-      success: true,
-      data: sortedTracks.map((track) => ({
-        title: track.title,
-        artist: track.artist,
-        album: track.album,
-        duration: track.duration,
-        startTime: track.startTime,
-        endTime: track.endTime,
-        isLive: track.isLive,
-      })),
-    })
-  } catch (error) {
-    console.error('Error fetching stream history:', error)
-    return c.json({ success: false, error: 'Failed to fetch stream history' }, 500)
   }
 })
 

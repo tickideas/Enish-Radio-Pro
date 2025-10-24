@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { db } from '../drizzle/db.js';
-import { users, socialLinks, adBanners, streamMetadata } from '../drizzle/schema.js';
+import { users, socialLinks, adBanners } from '../drizzle/schema.js';
 import bcrypt from 'bcryptjs';
 
 // Load environment variables
@@ -72,29 +72,8 @@ async function seedDatabase() {
       console.log('✅ Social links already exist, skipping seeding');
     }
 
-    // Seed sample stream metadata if none exist
-    const existingStreamData = await db.query.streamMetadata.findMany();
-    if (existingStreamData.length === 0) {
-      const streamData = {
-        title: 'Sample Radio Show',
-        artist: 'Enish Radio',
-        album: 'Live Stream',
-        artworkUrl: 'https://via.placeholder.com/300',
-        duration: 180,
-        genre: 'Talk Radio',
-        year: 2024,
-        isLive: true,
-        startTime: new Date(),
-        source: 'manual',
-        streamUrl: 'https://example.com/stream',
-        isActive: true
-      };
-
-      await db.insert(streamMetadata).values(streamData);
-      console.log('✅ Sample stream metadata seeded successfully!');
-    } else {
-      console.log('✅ Stream metadata already exists, skipping seeding');
-    }
+    // Note: Stream metadata is now managed by RadioKing API
+    console.log('ℹ️  Stream metadata is managed by RadioKing API, skipping seeding');
 
     console.log('🎉 Database seeding completed successfully!');
     

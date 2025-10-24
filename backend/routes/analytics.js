@@ -2,7 +2,6 @@ import express from 'express';
 import { adminAuth } from '../middleware/auth.js';
 import SocialLinkModel from '../drizzle/models/SocialLink.js';
 import AdBannerModel from '../drizzle/models/AdBanner.js';
-import StreamMetadataModel from '../drizzle/models/StreamMetadata.js';
 
 const router = express.Router();
 
@@ -25,11 +24,6 @@ router.get('/overview', adminAuth, async (req, res) => {
     const totalAds = await AdBannerModel.getAll();
     const activeAds = totalAds.filter(ad => ad.isActive);
     const totalClicks = totalAds.reduce((sum, ad) => sum + ad.clickCount, 0);
-
-    // Stream metadata analytics
-    const totalTracks = await StreamMetadataModel.getAll();
-    const activeTracks = totalTracks.filter(track => track.isLive);
-    const recentTracks = totalTracks.filter(track => track.startTime >= startOfWeek);
 
     // Weekly ad clicks
     const weeklyClicks = totalAds
@@ -54,11 +48,6 @@ router.get('/overview', adminAuth, async (req, res) => {
           totalClicks,
           weeklyClicks,
           monthlyClicks
-        },
-        stream: {
-          totalTracks: totalTracks.length,
-          activeTracks: activeTracks.length,
-          recentTracks: recentTracks.length
         },
         generatedAt: new Date().toISOString()
       }
@@ -113,40 +102,6 @@ router.get('/ad-clicks', adminAuth, async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to fetch ad clicks analytics'
-    });
-  }
-});
-
-// GET /api/analytics/stream-history - Get stream history analytics (admin only)
-router.get('/stream-history', adminAuth, async (req, res) => {
-  try {
-    const { limit = 50 } = req.query;
-    
-    const allStreamData = await StreamMetadataModel.getAll();
-    const activeStreamData = allStreamData.filter(track => track.isActive);
-    
-    // Sort by start time descending and limit
-    const sortedTracks = activeStreamData
-      .sort((a, b) => new Date(b.startTime) - new Date(a.startTime))
-      .slice(0, parseInt(limit));
-
-    res.json({
-      success: true,
-      data: sortedTracks.map(track => ({
-        title: track.title,
-        artist: track.artist,
-        album: track.album,
-        duration: track.duration,
-        startTime: track.startTime,
-        endTime: track.endTime,
-        isLive: track.isLive
-      }))
-    });
-  } catch (error) {
-    console.error('Error fetching stream history:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Failed to fetch stream history'
     });
   }
 });

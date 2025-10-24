@@ -14,12 +14,10 @@ import { testConnection, syncSchema } from './drizzle/db.js';
 import UserModel from './drizzle/models/User.js';
 import SocialLinkModel from './drizzle/models/SocialLink.js';
 import AdBannerModel from './drizzle/models/AdBanner.js';
-import StreamMetadataModel from './drizzle/models/StreamMetadata.js';
 
 // Import routes
 import socialLinksRoutes from './routes/socialLinks.js';
 import adBannersRoutes from './routes/adBanners.js';
-import streamMetadataRoutes from './routes/streamMetadata.js';
 import authRoutes from './routes/auth.js';
 import analyticsRoutes from './routes/analytics.js';
 
@@ -107,7 +105,6 @@ initializeDatabase();
 // Routes
 app.use('/api/social-links', socialLinksRoutes);
 app.use('/api/ads', adBannersRoutes);
-app.use('/api/stream/metadata', streamMetadataRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
