@@ -8,15 +8,18 @@ import {
   ScrollView,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const [showVolumeControl, setShowVolumeControl] = useState(false);
+  const [imageLoading, setImageLoading] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   const audioPlayer = useAudioPlayer();
 
@@ -25,6 +28,17 @@ export default function HomeScreen() {
     // This will be handled by the audio player hook automatically
     // but we can add additional app launch logic here if needed
   }, []);
+
+  // Handle image loading state changes
+  useEffect(() => {
+    if (audioPlayer.metadata.artwork) {
+      setImageLoading(true);
+      setImageError(false);
+    } else {
+      setImageLoading(false);
+      setImageError(false);
+    }
+  }, [audioPlayer.metadata.artwork]);
 
   const handleShareApp = () => {
     // This will be implemented with react-native-share
@@ -48,28 +62,43 @@ export default function HomeScreen() {
         {/* Album Art / Visualizer */}
         <View style={styles.albumArtContainer}>
           <View style={styles.albumArt}>
-            {audioPlayer.metadata.artwork ? (
-              <Image 
-                source={{ uri: audioPlayer.metadata.artwork }} 
-                style={styles.albumArtImage}
-                resizeMode="cover"
-              />
+            {audioPlayer.metadata.artwork && !imageError ? (
+              <>
+                <Image 
+                  source={{ uri: audioPlayer.metadata.artwork }} 
+                  style={styles.albumArtImage}
+                  resizeMode="cover"
+                  onLoad={() => setImageLoading(false)}
+                  onLoadStart={() => setImageLoading(true)}
+                  onError={() => {
+                    setImageError(true);
+                    setImageLoading(false);
+                  }}
+                />
+                {imageLoading && (
+                  <View style={styles.imageLoadingOverlay}>
+                    <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+                  </View>
+                )}
+              </>
             ) : (
-              <Ionicons 
-                name="radio" 
-                size={80} 
-                color={COLORS.PRIMARY} 
-                style={styles.radioIcon}
-              />
-            )}
-            {audioPlayer.isPlaying && (
-              <View style={styles.playingIndicator}>
-                <View style={[styles.bar, { height: 20 }]} />
-                <View style={[styles.bar, { height: 35 }]} />
-                <View style={[styles.bar, { height: 25 }]} />
-                <View style={[styles.bar, { height: 40 }]} />
-                <View style={[styles.bar, { height: 30 }]} />
-              </View>
+              <>
+                <Ionicons 
+                  name="radio" 
+                  size={80} 
+                  color={COLORS.PRIMARY} 
+                  style={styles.radioIcon}
+                />
+                {audioPlayer.isPlaying && (
+                  <View style={styles.playingIndicator}>
+                    <View style={[styles.bar, { height: 20 }]} />
+                    <View style={[styles.bar, { height: 35 }]} />
+                    <View style={[styles.bar, { height: 25 }]} />
+                    <View style={[styles.bar, { height: 40 }]} />
+                    <View style={[styles.bar, { height: 30 }]} />
+                  </View>
+                )}
+              </>
             )}
           </View>
         </View>
@@ -222,6 +251,17 @@ const styles = StyleSheet.create({
   albumArtImage: {
     width: '100%',
     height: '100%',
+    borderRadius: 20,
+  },
+  imageLoadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
     borderRadius: 20,
   },
   radioIcon: {
