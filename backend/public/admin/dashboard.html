@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enish Radio Pro - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+        }
+        
+        .header {
+            background: #1E88E5;
+            color: white;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+        }
+        
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .logout-btn {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .nav-tabs {
+            display: flex;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .nav-tab {
+            flex: 1;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            border: none;
+            background: none;
+            transition: background 0.3s;
+            font-size: 16px;
+        }
+        
+        .nav-tab.active {
+            background: #1E88E5;
+            color: white;
+        }
+        
+        .nav-tab:hover:not(.active) {
+            background: #f0f0f0;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #1E88E5;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .btn {
+            background: #1E88E5;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        
+        .btn:hover {
+            background: #1976D2;
+        }
+        
+        .btn-danger {
+            background: #f44336;
+        }
+        
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .table th {
+            background: #f5f5f5;
+            font-weight: 600;
+        }
+        
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+        }
+        
+        .message.success {
+            background: #e8f5e8;
+            color: #4caf50;
+        }
+        
+        .message.error {
+            background: #ffebee;
+            color: #f44336;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1>📻 Enish Radio Pro Admin</h1>
+            <div class="header-actions">
+                <span id="userEmail"></span>
+                <button class="logout-btn" onclick="logout()">Logout</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('dashboard')">Dashboard</button>
+            <button class="nav-tab" onclick="showTab('social-links')">Social Links</button>
+            <button class="nav-tab" onclick="showTab('ad-banners')">Ad Banners</button>
+            <button class="nav-tab" onclick="showTab('stream-metadata')">Stream Metadata</button>
+        </div>
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <h2>Dashboard Overview</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number" id="totalSocialLinks">-</div>
+                    <div class="stat-label">Social Links</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalAdBanners">-</div>
+                    <div class="stat-label">Active Ad Banners</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalTracks">-</div>
+                    <div class="stat-label">Stream Tracks</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalUsers">-</div>
+                    <div class="stat-label">Admin Users</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Social Links Tab -->
+        <div id="social-links" class="tab-content">
+            <h2>Social Links Management</h2>
+            <div id="socialLinksContent">
+                <div class="loading">Loading social links...</div>
+            </div>
+        </div>
+        
+        <!-- Ad Banners Tab -->
+        <div id="ad-banners" class="tab-content">
+            <h2>Ad Banner Management</h2>
+            <div id="adBannersContent">
+                <div class="loading">Loading ad banners...</div>
+            </div>
+        </div>
+        
+        <!-- Stream Metadata Tab -->
+        <div id="stream-metadata" class="tab-content">
+            <h2>Stream Metadata Management</h2>
+            <div id="streamMetadataContent">
+                <div class="loading">Loading stream metadata...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentToken = localStorage.getItem('adminToken');
+        let currentUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+        
+        // Check authentication
+        if (!currentToken) {
+            window.location.href = '/admin/';
+        }
+        
+        // Display user email
+        document.getElementById('userEmail').textContent = currentUser.email || 'Admin';
+        
+        // Tab management
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            event.target.classList.add('active');
+            
+            // Load tab-specific data
+            loadTabData(tabName);
+        }
+        
+        // Load tab-specific data
+        async function loadTabData(tabName) {
+            switch(tabName) {
+                case 'dashboard':
+                    await loadDashboardStats();
+                    break;
+                case 'social-links':
+                    await loadSocialLinks();
+                    break;
+                case 'ad-banners':
+                    await loadAdBanners();
+                    break;
+                case 'stream-metadata':
+                    await loadStreamMetadata();
+                    break;
+            }
+        }
+        
+        // API helper function
+        async function apiCall(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${currentToken}`
+                }
+            };
+            
+            if (data) {
+                options.body = JSON.stringify(data);
+            }
+            
+            const response = await fetch(`/api${endpoint}`, options);
+            return await response.json();
+        }
+        
+        // Load dashboard stats
+        async function loadDashboardStats() {
+            try {
+                // Load social links count
+                const socialLinks = await apiCall('/social-links/admin');
+                document.getElementById('totalSocialLinks').textContent = socialLinks.length || 0;
+                
+                // Load ad banners count
+                const adBanners = await apiCall('/ads/admin');
+                document.getElementById('totalAdBanners').textContent = adBanners.filter(ad => ad.isActive).length || 0;
+                
+                // Load stream metadata count
+                const streamMetadata = await apiCall('/stream/metadata/admin');
+                document.getElementById('totalTracks').textContent = streamMetadata.length || 0;
+                
+                // Load users count
+                const users = await apiCall('/auth/users');
+                document.getElementById('totalUsers').textContent = users.length || 0;
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+            }
+        }
+        
+        // Load social links
+        async function loadSocialLinks() {
+            try {
+                const socialLinks = await apiCall('/social-links/admin');
+                const content = document.getElementById('socialLinksContent');
+                
+                if (socialLinks.length === 0) {
+                    content.innerHTML = '<p>No social links found.</p>';
+                    return;
+                }
+                
+                let html = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Platform</th>
+                                <th>Display Name</th>
+                                <th>URL</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                socialLinks.forEach(link => {
+                    html += `
+                        <tr>
+                            <td>${link.platform}</td>
+                            <td>${link.displayName}</td>
+                            <td><a href="${link.url}" target="_blank">${link.url}</a></td>
+                            <td>${link.isActive ? 'Active' : 'Inactive'}</td>
+                            <td>
+                                <button class="btn" onclick="editSocialLink('${link.id}')">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteSocialLink('${link.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch (error) {
+                document.getElementById('socialLinksContent').innerHTML = '<p class="message error">Error loading social links.</p>';
+            }
+        }
+        
+        // Load ad banners
+        async function loadAdBanners() {
+            try {
+                const adBanners = await apiCall('/ads/admin');
+                const content = document.getElementById('adBannersContent');
+                
+                if (adBanners.length === 0) {
+                    content.innerHTML = '<p>No ad banners found.</p>';
+                    return;
+                }
+                
+                let html = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Image</th>
+                                <th>Target URL</th>
+                                <th>Status</th>
+                                <th>Clicks</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                adBanners.forEach(ad => {
+                    html += `
+                        <tr>
+                            <td>${ad.title}</td>
+                            <td><img src="${ad.imageUrl}" alt="${ad.title}" style="max-width: 100px; max-height: 50px;"></td>
+                            <td><a href="${ad.targetUrl}" target="_blank">${ad.targetUrl}</a></td>
+                            <td>${ad.isActive ? 'Active' : 'Inactive'}</td>
+                            <td>${ad.clickCount || 0}</td>
+                            <td>
+                                <button class="btn" onclick="editAdBanner('${ad.id}')">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteAdBanner('${ad.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch (error) {
+                document.getElementById('adBannersContent').innerHTML = '<p class="message error">Error loading ad banners.</p>';
+            }
+        }
+        
+        // Load stream metadata
+        async function loadStreamMetadata() {
+            try {
+                const streamMetadata = await apiCall('/stream/metadata/admin');
+                const content = document.getElementById('streamMetadataContent');
+                
+                if (streamMetadata.length === 0) {
+                    content.innerHTML = '<p>No stream metadata found.</p>';
+                    return;
+                }
+                
+                let html = `
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Artist</th>
+                                <th>Album</th>
+                                <th>Duration</th>
+                                <th>Live</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+                
+                streamMetadata.forEach(metadata => {
+                    html += `
+                        <tr>
+                            <td>${metadata.title}</td>
+                            <td>${metadata.artist}</td>
+                            <td>${metadata.album || '-'}</td>
+                            <td>${metadata.duration ? formatDuration(metadata.duration) : '-'}</td>
+                            <td>${metadata.isLive ? 'Yes' : 'No'}</td>
+                            <td>
+                                <button class="btn" onclick="editStreamMetadata('${metadata.id}')">Edit</button>
+                                <button class="btn btn-danger" onclick="deleteStreamMetadata('${metadata.id}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch (error) {
+                document.getElementById('streamMetadataContent').innerHTML = '<p class="message error">Error loading stream metadata.</p>';
+            }
+        }
+        
+        // Format duration helper
+        function formatDuration(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+        }
+        
+        // Logout function
+        function logout() {
+            localStorage.removeItem('adminToken');
+            localStorage.removeItem('adminUser');
+            window.location.href = '/admin/';
+        }
+        
+        // Placeholder functions for edit/delete operations
+        function editSocialLink(id) {
+            alert('Edit functionality would be implemented here');
+        }
+        
+        function deleteSocialLink(id) {
+            if (confirm('Are you sure you want to delete this social link?')) {
+                alert('Delete functionality would be implemented here');
+            }
+        }
+        
+        function editAdBanner(id) {
+            alert('Edit functionality would be implemented here');
+        }
+        
+        function deleteAdBanner(id) {
+            if (confirm('Are you sure you want to delete this ad banner?')) {
+                alert('Delete functionality would be implemented here');
+            }
+        }
+        
+        function editStreamMetadata(id) {
+            alert('Edit functionality would be implemented here');
+        }
+        
+        function deleteStreamMetadata(id) {
+            if (confirm('Are you sure you want to delete this stream metadata?')) {
+                alert('Delete functionality would be implemented here');
+            }
+        }
+        
+        // Load initial dashboard data
+        loadDashboardStats();
+    </script>
+</body>
+</html>
