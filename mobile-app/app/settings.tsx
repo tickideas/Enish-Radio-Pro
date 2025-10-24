@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -18,6 +18,34 @@ export default function SettingsScreen() {
   const [notifications, setNotifications] = useState(true);
   const [autoPlay, setAutoPlay] = useState(true);
   const [highQuality, setHighQuality] = useState(false);
+
+  // Load initial auto-play setting from cache
+  useEffect(() => {
+    const loadAutoPlaySetting = async () => {
+      try {
+        const { CacheService } = await import('@/services/cache');
+        const savedAutoPlay = await CacheService.getAutoPlaySetting();
+        setAutoPlay(savedAutoPlay);
+      } catch (error) {
+        console.error('Error loading auto-play setting:', error);
+      }
+    };
+    loadAutoPlaySetting();
+  }, []);
+
+  // Save auto-play setting when changed
+  useEffect(() => {
+    const saveAutoPlaySetting = async () => {
+      try {
+        const { CacheService } = await import('@/services/cache');
+        await CacheService.setAutoPlaySetting(autoPlay);
+      } catch (error) {
+        console.error('Error saving auto-play setting:', error);
+        Alert.alert('Error', 'Failed to save auto-play setting');
+      }
+    };
+    saveAutoPlaySetting();
+  }, [autoPlay]);
 
   const handleShareApp = () => {
     // Will be implemented with react-native-share

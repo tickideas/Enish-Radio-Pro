@@ -33,6 +33,7 @@ export const useAudioPlayer = () => {
   const soundRef = useRef<Audio.Sound | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
+  const autoPlayAttemptedRef = useRef(false);
 
   // Initialize audio session
   useEffect(() => {
@@ -56,6 +57,35 @@ export const useAudioPlayer = () => {
       isMountedRef.current = false;
       cleanup();
     };
+  }, []);
+
+  // Handle auto-play on app launch
+  useEffect(() => {
+    const attemptAutoPlay = async () => {
+      if (autoPlayAttemptedRef.current) return;
+      
+      try {
+        const { CacheService } = await import('@/services/cache');
+        const autoPlayEnabled = await CacheService.getAutoPlaySetting();
+        
+        if (autoPlayEnabled) {
+          autoPlayAttemptedRef.current = true;
+          // Small delay to ensure app is fully loaded
+          setTimeout(async () => {
+            try {
+              await loadAndPlay(RADIO_STREAMS.PRIMARY_MP3);
+            } catch (error) {
+              console.error('Auto-play failed:', error);
+              // Don't show error to user for auto-play failure
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error checking auto-play setting:', error);
+      }
+    };
+
+    attemptAutoPlay();
   }, []);
 
   const cleanup = useCallback(async () => {
@@ -226,6 +256,18 @@ export const useAudioPlayer = () => {
     return () => clearInterval(metadataInterval);
   }, [state.isPlaying, state.error, updateState]);
 
+  const triggerAutoPlay = useCallback(async () => {
+    if (autoPlayAttemptedRef.current) return;
+    
+    try {
+      autoPlayAttemptedRef.current = true;
+      await loadAndPlay(RADIO_STREAMS.PRIMARY_MP3);
+    } catch (error) {
+      console.error('Manual auto-play failed:', error);
+      updateState({ error: 'Failed to start auto-play' });
+    }
+  }, [loadAndPlay, updateState]);
+
   return {
     ...state,
     play,
@@ -235,5 +277,6 @@ export const useAudioPlayer = () => {
     togglePlayPause,
     retryConnection,
     cleanup,
+    triggerAutoPlay,
   };
 };

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
-import { useSleepTimer } from '@/hooks/useSleepTimer';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 
 const { width, height } = Dimensions.get('window');
@@ -20,11 +19,12 @@ export default function HomeScreen() {
   const [showVolumeControl, setShowVolumeControl] = useState(false);
   
   const audioPlayer = useAudioPlayer();
-  const sleepTimer = useSleepTimer(() => {
-    // Stop audio when sleep timer ends
-    audioPlayer.stop();
-    Alert.alert('Sleep Timer', 'Radio stopped automatically.');
-  });
+
+  // Trigger auto-play when component mounts
+  useEffect(() => {
+    // This will be handled by the audio player hook automatically
+    // but we can add additional app launch logic here if needed
+  }, []);
 
   const handleShareApp = () => {
     // This will be implemented with react-native-share
@@ -139,61 +139,6 @@ export default function HomeScreen() {
           )}
         </View>
 
-        {/* Sleep Timer */}
-        <View style={styles.sleepTimerContainer}>
-          <Text style={styles.sectionTitle}>Sleep Timer</Text>
-          <View style={styles.timerControls}>
-            <TouchableOpacity 
-              style={[
-                styles.timerButton,
-                sleepTimer.isActive && styles.timerButtonActive
-              ]}
-              onPress={sleepTimer.toggleTimer}
-            >
-              <Text style={[
-                styles.timerButtonText,
-                sleepTimer.isActive && styles.timerButtonTextActive
-              ]}>
-                {sleepTimer.isActive 
-                  ? sleepTimer.formatTime(sleepTimer.remainingTime)
-                  : 'Set Timer'
-                }
-              </Text>
-            </TouchableOpacity>
-            
-            {sleepTimer.isActive && (
-              <TouchableOpacity 
-                style={styles.stopTimerButton}
-                onPress={sleepTimer.stopTimer}
-              >
-                <Text style={styles.stopTimerText}>Stop</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-          
-          {/* Timer Options */}
-          {!sleepTimer.isActive && (
-            <View style={styles.timerOptions}>
-              {sleepTimer.availableOptions.map((minutes) => (
-                <TouchableOpacity
-                  key={minutes}
-                  style={[
-                    styles.timerOption,
-                    sleepTimer.selectedMinutes === minutes && styles.timerOptionSelected
-                  ]}
-                  onPress={() => sleepTimer.selectMinutes(minutes)}
-                >
-                  <Text style={[
-                    styles.timerOptionText,
-                    sleepTimer.selectedMinutes === minutes && styles.timerOptionTextSelected
-                  ]}>
-                    {minutes}m
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          )}
-        </View>
 
         {/* Action Buttons */}
         <View style={styles.actionButtons}>

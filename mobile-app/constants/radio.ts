@@ -29,6 +29,7 @@ export const STORAGE_KEYS = {
   USER_PREFERENCES: 'user_preferences',
   FAVORITE_TRACKS: 'favorite_tracks',
   LAST_PLAYED: 'last_played',
+  AUTO_PLAY: 'auto_play_enabled',
 };
 
 // Colors
