@@ -90,7 +90,7 @@ export const useAudioPlayer = () => {
           isLooping: true,
           volume: state.volume,
         },
-        (status) => {
+        (status: any) => {
           if (status.isLoaded) {
             updateState({
               isPlaying: status.isPlaying || false,
