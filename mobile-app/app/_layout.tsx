@@ -1,89 +1,92 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { COLORS, APP_CONFIG, API_ENDPOINTS } from '@/constants/radio';
+import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Drawer
-        screenOptions={{
-          headerShown: true,
-          headerStyle: {
-            backgroundColor: colorScheme === 'dark' ? COLORS.BACKGROUND_DARK : COLORS.PRIMARY,
-          },
-          headerTintColor: '#fff',
-          headerTitleStyle: {
-            fontWeight: 'bold',
-          },
-          drawerType: 'slide',
-          drawerStyle: {
-            width: 280,
-            backgroundColor: colorScheme === 'dark' ? COLORS.BACKGROUND_DARK : COLORS.BACKGROUND,
-          },
-        }}
-        drawerContent={(props) => <CustomDrawerContent {...props} />}
-      >
-        <Drawer.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            drawerLabel: 'Home',
-            drawerIcon: ({ color, size }) => (
-              <Ionicons name="home" size={size} color={color} />
-            ),
+      <AudioPlayerProvider>
+        <Drawer
+          screenOptions={{
+            headerShown: true,
+            headerStyle: {
+              backgroundColor: colorScheme === 'dark' ? COLORS.BACKGROUND_DARK : COLORS.PRIMARY,
+            },
+            headerTintColor: '#fff',
+            headerTitleStyle: {
+              fontWeight: 'bold',
+            },
+            drawerType: 'slide',
+            drawerStyle: {
+              width: 280,
+              backgroundColor: colorScheme === 'dark' ? COLORS.BACKGROUND_DARK : COLORS.BACKGROUND,
+            },
           }}
-        />
-        <Drawer.Screen
-          name="sleep-timer"
-          options={{
-            title: 'Sleep Timer',
-            drawerLabel: 'Sleep Timer',
-            drawerIcon: ({ color, size }) => (
-              <Ionicons name="moon" size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="settings"
-          options={{
-            title: 'Settings',
-            drawerLabel: 'Settings',
-            drawerIcon: ({ color, size }) => (
-              <Ionicons name="settings" size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="privacy"
-          options={{
-            title: 'Privacy Policy',
-            drawerLabel: 'Privacy Policy',
-            drawerIcon: ({ color, size }) => (
-              <Ionicons name="lock-closed" size={size} color={color} />
-            ),
-          }}
-        />
-        <Drawer.Screen
-          name="about"
-          options={{
-            title: 'About',
-            drawerLabel: 'About',
-            drawerIcon: ({ color, size }) => (
-              <Ionicons name="information-circle" size={size} color={color} />
-            ),
-          }}
-        />
-      </Drawer>
-      <StatusBar style="auto" />
+          drawerContent={(props) => <CustomDrawerContent {...props} />}
+        >
+          <Drawer.Screen
+            name="index"
+            options={{
+              title: 'Home',
+              drawerLabel: 'Home',
+              drawerIcon: ({ color, size }) => (
+                <Ionicons name="home" size={size} color={color} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="sleep-timer"
+            options={{
+              title: 'Sleep Timer',
+              drawerLabel: 'Sleep Timer',
+              drawerIcon: ({ color, size }) => (
+                <Ionicons name="moon" size={size} color={color} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="settings"
+            options={{
+              title: 'Settings',
+              drawerLabel: 'Settings',
+              drawerIcon: ({ color, size }) => (
+                <Ionicons name="settings" size={size} color={color} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="privacy"
+            options={{
+              title: 'Privacy Policy',
+              drawerLabel: 'Privacy Policy',
+              drawerIcon: ({ color, size }) => (
+                <Ionicons name="lock-closed" size={size} color={color} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="about"
+            options={{
+              title: 'About',
+              drawerLabel: 'About',
+              drawerIcon: ({ color, size }) => (
+                <Ionicons name="information-circle" size={size} color={color} />
+              ),
+            }}
+          />
+        </Drawer>
+        <StatusBar style="auto" />
+      </AudioPlayerProvider>
     </ThemeProvider>
   );
 }
@@ -194,6 +197,17 @@ function CustomDrawerContent(props: any) {
         >
           <Ionicons name="information-circle" size={24} color={COLORS.PRIMARY} />
           <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>About</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.navItem, { borderBottomColor: isDark ? COLORS.BORDER_DARK : COLORS.BORDER }]}
+          onPress={() => {
+            // Rate app functionality
+            Alert.alert('Rate App', 'Rate functionality will be implemented soon.');
+          }}
+        >
+          <Ionicons name="star" size={24} color={COLORS.PRIMARY} />
+          <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>Rate App</Text>
         </TouchableOpacity>
       </View>
 

@@ -5,23 +5,22 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  ScrollView,
   Alert,
   Dimensions,
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const [showVolumeControl, setShowVolumeControl] = useState(false);
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   
-  const audioPlayer = useAudioPlayer();
+  const audioPlayer = useAudioPlayerContext();
 
   // Trigger auto-play when component mounts
   useEffect(() => {
@@ -45,20 +44,16 @@ export default function HomeScreen() {
     Alert.alert('Share App', 'Share functionality will be implemented soon.');
   };
 
-  const handleRateApp = () => {
-    // This will be implemented with react-native-rate
-    Alert.alert('Rate App', 'Rate functionality will be implemented soon.');
-  };
-
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.appName}>{APP_CONFIG.NAME}</Text>
-          <Text style={styles.tagline}>Your Premium Radio Experience</Text>
-        </View>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.appName}>{APP_CONFIG.NAME}</Text>
+        <Text style={styles.tagline}>Your Premium Radio Experience</Text>
+      </View>
 
+      {/* Main Content Area */}
+      <View style={styles.mainContent}>
         {/* Album Art / Visualizer */}
         <View style={styles.albumArtContainer}>
           <View style={styles.albumArt}>
@@ -85,7 +80,7 @@ export default function HomeScreen() {
               <>
                 <Ionicons 
                   name="radio" 
-                  size={80} 
+                  size={width * 0.2} 
                   color={COLORS.PRIMARY} 
                   style={styles.radioIcon}
                 />
@@ -103,7 +98,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Track Info */}
+        {/* Track Info with Status */}
         <View style={styles.trackInfo}>
           <Text style={styles.trackTitle}>
             {audioPlayer.metadata.title || 'Enish Radio Live'}
@@ -114,93 +109,92 @@ export default function HomeScreen() {
           {audioPlayer.metadata.album && (
             <Text style={styles.trackAlbum}>{audioPlayer.metadata.album}</Text>
           )}
+          
+          {/* Status Indicators - Integrated with track info */}
+          <View style={styles.statusContainer}>
+            {audioPlayer.isBuffering && (
+              <View style={styles.bufferingIndicator}>
+                <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+                <Text style={styles.statusText}>Buffering...</Text>
+              </View>
+            )}
+            {audioPlayer.error && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{audioPlayer.error}</Text>
+                <TouchableOpacity 
+                  style={styles.retryButton}
+                  onPress={audioPlayer.retryConnection}
+                >
+                  <Text style={styles.retryText}>Retry</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
         </View>
 
-        {/* Player Controls */}
-        <View style={styles.playerControls}>
+        {/* Combined Player Controls and Volume */}
+        <View style={styles.playerControlsRow}>
+          {/* Share Button */}
           <TouchableOpacity 
-            style={styles.controlButton}
+            style={styles.sideButton}
+            onPress={handleShareApp}
+          >
+            <Ionicons name="share-social" size={28} color={COLORS.PRIMARY} />
+          </TouchableOpacity>
+
+          {/* Main Play/Pause Button - Center */}
+          <TouchableOpacity 
+            style={styles.mainControlButton}
             onPress={audioPlayer.togglePlayPause}
             disabled={audioPlayer.isLoading}
           >
             <Ionicons
               name={audioPlayer.isPlaying ? 'pause-circle' : 'play-circle'}
-              size={80}
+              size={width * 0.18}
               color={COLORS.PRIMARY}
             />
           </TouchableOpacity>
-        </View>
 
-        {/* Status Indicators */}
-        <View style={styles.statusContainer}>
-          {audioPlayer.isLoading && (
-            <Text style={styles.statusText}>Loading...</Text>
-          )}
-          {audioPlayer.isBuffering && (
-            <Text style={styles.statusText}>Buffering...</Text>
-          )}
-          {audioPlayer.error && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorText}>{audioPlayer.error}</Text>
-              <TouchableOpacity 
-                style={styles.retryButton}
-                onPress={audioPlayer.retryConnection}
-              >
-                <Text style={styles.retryText}>Retry</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </View>
-
-        {/* Volume Control */}
-        <View style={styles.volumeContainer}>
+          {/* Volume Button */}
           <TouchableOpacity 
-            style={styles.volumeButton}
+            style={styles.sideButton}
             onPress={() => setShowVolumeControl(!showVolumeControl)}
           >
             <Ionicons 
-              name="volume-high" 
-              size={24} 
-              color={COLORS.TEXT} 
+              name={audioPlayer.volume === 0 ? 'volume-mute' : audioPlayer.volume < 0.5 ? 'volume-low' : 'volume-high'} 
+              size={28} 
+              color={COLORS.PRIMARY} 
             />
           </TouchableOpacity>
-          
-          {showVolumeControl && (
-            <View style={styles.volumeSlider}>
-              <Text style={styles.volumeLabel}>Volume</Text>
-              {/* Volume slider will be implemented here */}
-              <Text style={styles.volumeValue}>
-                {Math.round(audioPlayer.volume * 100)}%
-              </Text>
+        </View>
+
+        {/* Volume Control - Shows when volume button is pressed */}
+        {showVolumeControl && (
+          <View style={styles.volumeControlExpanded}>
+            <Text style={styles.volumeLabel}>Volume: {Math.round(audioPlayer.volume * 100)}%</Text>
+            <View style={styles.volumeSliderContainer}>
+              <TouchableOpacity 
+                style={styles.volumeSlider}
+                onPress={(e) => {
+                  const { locationX } = e.nativeEvent;
+                  const sliderWidth = width * 0.6;
+                  const newVolume = Math.max(0, Math.min(1, locationX / sliderWidth));
+                  audioPlayer.setVolume(newVolume);
+                }}
+              >
+                <View style={styles.volumeTrack}>
+                  <View style={[styles.volumeFill, { width: `${audioPlayer.volume * 100}%` }]} />
+                </View>
+              </TouchableOpacity>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
-
-        {/* Action Buttons */}
-        <View style={styles.actionButtons}>
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={handleShareApp}
-          >
-            <Ionicons name="share-social" size={24} color={COLORS.PRIMARY} />
-            <Text style={styles.actionButtonText}>Share</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.actionButton}
-            onPress={handleRateApp}
-          >
-            <Ionicons name="star" size={24} color={COLORS.PRIMARY} />
-            <Text style={styles.actionButtonText}>Rate</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Ad Banner Placeholder */}
+        {/* Ad Banner - Prominently positioned */}
         <View style={styles.adBanner}>
           <Text style={styles.adText}>Advertisement Space</Text>
         </View>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -210,48 +204,50 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
-  scrollContent: {
-    flexGrow: 1,
-    padding: 20,
-    paddingBottom: 100,
-  },
   header: {
     alignItems: 'center',
-    marginBottom: 30,
+    paddingTop: height * 0.02,
+    paddingBottom: height * 0.01,
   },
   appName: {
-    fontSize: 28,
+    fontSize: Math.min(28, width * 0.07),
     fontWeight: 'bold',
     color: COLORS.PRIMARY,
-    marginBottom: 5,
+    marginBottom: 2,
   },
   tagline: {
-    fontSize: 16,
+    fontSize: Math.min(16, width * 0.04),
     color: COLORS.TEXT,
     opacity: 0.7,
   },
+  mainContent: {
+    flex: 1,
+    paddingHorizontal: width * 0.05,
+    paddingBottom: height * 0.02,
+    justifyContent: 'space-between',
+  },
   albumArtContainer: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: height * 0.02,
   },
   albumArt: {
-    width: width * 0.6,
-    height: width * 0.6,
-    borderRadius: 20,
+    width: Math.min(width * 0.5, height * 0.3),
+    height: Math.min(width * 0.5, height * 0.3),
+    borderRadius: 15,
     backgroundColor: COLORS.CARD,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 4,
+    elevation: 4,
     overflow: 'hidden',
   },
   albumArtImage: {
     width: '100%',
     height: '100%',
-    borderRadius: 20,
+    borderRadius: 15,
   },
   imageLoadingOverlay: {
     position: 'absolute',
@@ -262,200 +258,155 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 20,
+    borderRadius: 15,
   },
   radioIcon: {
-    marginBottom: 10,
+    marginBottom: height * 0.01,
   },
   playingIndicator: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    height: 40,
+    height: 30,
     position: 'absolute',
-    bottom: 20,
+    bottom: 15,
   },
   bar: {
-    width: 4,
+    width: 3,
     backgroundColor: COLORS.PRIMARY,
-    marginHorizontal: 2,
-    borderRadius: 2,
+    marginHorizontal: 1.5,
+    borderRadius: 1.5,
   },
   trackInfo: {
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: height * 0.02,
   },
   trackTitle: {
-    fontSize: 22,
+    fontSize: Math.min(20, width * 0.05),
     fontWeight: 'bold',
     color: COLORS.TEXT,
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: 3,
   },
   trackArtist: {
-    fontSize: 18,
+    fontSize: Math.min(16, width * 0.04),
     color: COLORS.TEXT,
     opacity: 0.8,
     textAlign: 'center',
-    marginBottom: 5,
+    marginBottom: 2,
   },
   trackAlbum: {
-    fontSize: 16,
+    fontSize: Math.min(14, width * 0.035),
     color: COLORS.TEXT,
     opacity: 0.6,
     textAlign: 'center',
   },
-  playerControls: {
+  bufferingIndicator: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
-  },
-  controlButton: {
-    padding: 10,
+    marginTop: 5,
   },
   statusContainer: {
     alignItems: 'center',
-    marginBottom: 20,
-    minHeight: 40,
+    marginTop: 5,
   },
   statusText: {
-    fontSize: 16,
+    fontSize: 12,
     color: COLORS.PRIMARY,
     fontStyle: 'italic',
+    marginLeft: 5,
   },
   errorContainer: {
     alignItems: 'center',
+    marginTop: 5,
   },
   errorText: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#FF6B6B',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 5,
   },
   retryButton: {
     backgroundColor: COLORS.PRIMARY,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: 15,
+    paddingVertical: 5,
+    borderRadius: 15,
   },
   retryText: {
     color: 'white',
     fontWeight: 'bold',
+    fontSize: 12,
   },
-  volumeContainer: {
+  playerControlsRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 30,
+    justifyContent: 'space-between',
+    marginBottom: height * 0.02,
+    paddingHorizontal: width * 0.1,
   },
-  volumeButton: {
+  mainControlButton: {
+    padding: 5,
+  },
+  sideButton: {
     padding: 10,
+    borderRadius: 25,
+    backgroundColor: COLORS.CARD,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  volumeSlider: {
+  volumeControlExpanded: {
     alignItems: 'center',
-    marginTop: 10,
+    marginBottom: height * 0.02,
+    paddingVertical: 10,
   },
   volumeLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: COLORS.TEXT,
     marginBottom: 5,
   },
-  volumeValue: {
-    fontSize: 16,
-    color: COLORS.PRIMARY,
-    fontWeight: 'bold',
+  volumeSliderContainer: {
+    width: width * 0.6,
+  },
+  volumeSlider: {
+    height: 20,
+    justifyContent: 'center',
+  },
+  volumeTrack: {
+    height: 4,
+    backgroundColor: COLORS.BORDER,
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  volumeFill: {
+    height: '100%',
+    backgroundColor: COLORS.PRIMARY,
+    borderRadius: 2,
   },
   sleepTimerContainer: {
-    marginBottom: 30,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: COLORS.TEXT,
-    textAlign: 'center',
-    marginBottom: 15,
-  },
-  timerControls: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 15,
-  },
-  timerButton: {
-    backgroundColor: COLORS.CARD,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 25,
-    minWidth: 120,
-    alignItems: 'center',
-  },
-  timerButtonActive: {
-    backgroundColor: COLORS.PRIMARY,
-  },
-  timerButtonText: {
-    fontSize: 16,
-    color: COLORS.TEXT,
-    fontWeight: 'bold',
-  },
-  timerButtonTextActive: {
-    color: 'white',
-  },
-  stopTimerButton: {
-    marginLeft: 10,
-    backgroundColor: '#FF6B6B',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 20,
-  },
-  stopTimerText: {
-    color: 'white',
-    fontWeight: 'bold',
-  },
-  timerOptions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  timerOption: {
-    backgroundColor: COLORS.CARD,
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 15,
-    margin: 5,
-  },
-  timerOptionSelected: {
-    backgroundColor: COLORS.PRIMARY,
-  },
-  timerOptionText: {
-    fontSize: 14,
-    color: COLORS.TEXT,
-  },
-  timerOptionTextSelected: {
-    color: 'white',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginBottom: 30,
-  },
-  actionButton: {
-    alignItems: 'center',
-    padding: 15,
-  },
-  actionButtonText: {
-    fontSize: 14,
-    color: COLORS.TEXT,
-    marginTop: 5,
+    marginBottom: height * 0.02,
   },
   adBanner: {
     backgroundColor: COLORS.CARD,
-    height: 60,
+    height: Math.min(80, height * 0.1),
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.BORDER,
     borderStyle: 'dashed',
+    marginTop: 'auto',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   adText: {
     color: COLORS.TEXT,
-    opacity: 0.5,
-    fontSize: 14,
+    opacity: 0.6,
+    fontSize: Math.min(14, width * 0.035),
+    fontWeight: '500',
   },
 });

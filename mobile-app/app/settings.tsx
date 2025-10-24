@@ -10,11 +10,11 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 
 export default function SettingsScreen() {
-  const audioPlayer = useAudioPlayer();
+  const audioPlayer = useAudioPlayerContext();
   const [notifications, setNotifications] = useState(true);
   const [autoPlay, setAutoPlay] = useState(true);
   const [highQuality, setHighQuality] = useState(false);

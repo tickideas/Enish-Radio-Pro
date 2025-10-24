@@ -9,11 +9,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSleepTimer } from '@/hooks/useSleepTimer';
-import { useAudioPlayer } from '@/hooks/useAudioPlayer';
+import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS } from '@/constants/radio';
 
 export default function SleepTimerScreen() {
-  const audioPlayer = useAudioPlayer();
+  const audioPlayer = useAudioPlayerContext();
   const sleepTimer = useSleepTimer(() => {
     audioPlayer.stop();
     Alert.alert('Sleep Timer', 'Radio stopped automatically.');
