@@ -48,12 +48,20 @@ export default function HomeScreen() {
         {/* Album Art / Visualizer */}
         <View style={styles.albumArtContainer}>
           <View style={styles.albumArt}>
-            <Ionicons 
-              name="radio" 
-              size={80} 
-              color={COLORS.PRIMARY} 
-              style={styles.radioIcon}
-            />
+            {audioPlayer.metadata.artwork ? (
+              <Image 
+                source={{ uri: audioPlayer.metadata.artwork }} 
+                style={styles.albumArtImage}
+                resizeMode="cover"
+              />
+            ) : (
+              <Ionicons 
+                name="radio" 
+                size={80} 
+                color={COLORS.PRIMARY} 
+                style={styles.radioIcon}
+              />
+            )}
             {audioPlayer.isPlaying && (
               <View style={styles.playingIndicator}>
                 <View style={[styles.bar, { height: 20 }]} />
@@ -209,6 +217,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 8,
+    overflow: 'hidden',
+  },
+  albumArtImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
   },
   radioIcon: {
     marginBottom: 10,

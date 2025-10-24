@@ -239,21 +239,62 @@ export const useAudioPlayer = () => {
     }
   }, [state.isPlaying, play, pause]);
 
-  // Simulate metadata updates (in real app, this would come from API)
+  // Fetch real metadata from RadioKing API
   useEffect(() => {
-    const metadataInterval = setInterval(() => {
-      if (state.isPlaying && !state.error) {
+    let metadataInterval: NodeJS.Timeout;
+    
+    const fetchMetadata = async () => {
+      if (!state.isPlaying || state.error) return;
+      
+      try {
+        const { RadioKingService } = await import('@/services/radioKing');
+        const response = await RadioKingService.getCurrentTrack();
+        
+        if (response.success && response.data) {
+          const appFormat = RadioKingService.convertToAppFormat(response.data);
+          updateState({
+            metadata: appFormat
+          });
+        } else {
+          // Fallback to default metadata
+          updateState({
+            metadata: {
+              title: 'Enish Radio Live',
+              artist: '24/7 Music Stream',
+              album: 'Live Stream',
+              artwork: '',
+              duration: 0
+            }
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching RadioKing metadata:', error);
+        // Fallback to default metadata on error
         updateState({
           metadata: {
-            title: 'Current Track',
-            artist: 'Enish Radio',
+            title: 'Enish Radio Live',
+            artist: '24/7 Music Stream',
             album: 'Live Stream',
+            artwork: '',
+            duration: 0
           }
         });
       }
-    }, 30000); // Update every 30 seconds
+    };
 
-    return () => clearInterval(metadataInterval);
+    // Fetch immediately when playback starts
+    if (state.isPlaying && !state.error) {
+      fetchMetadata();
+    }
+
+    // Set up interval for periodic updates (every 15 seconds for more frequent updates)
+    metadataInterval = setInterval(fetchMetadata, 15000);
+
+    return () => {
+      if (metadataInterval) {
+        clearInterval(metadataInterval);
+      }
+    };
   }, [state.isPlaying, state.error, updateState]);
 
   const triggerAutoPlay = useCallback(async () => {

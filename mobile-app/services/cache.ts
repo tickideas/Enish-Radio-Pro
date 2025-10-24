@@ -68,4 +68,28 @@ export class CacheService {
       console.error('Error clearing cache:', error);
     }
   }
+
+  /**
+   * Get cache keys for different data types
+   */
+  static getCacheKeys() {
+    return {
+      SOCIAL_LINKS: 'social_links',
+      AD_BANNERS: 'ad_banners',
+      STREAM_METADATA: 'stream_metadata',
+      AUTH_VERIFY: 'auth_verify',
+      HEALTH_CHECK: 'health_check',
+    };
+  }
+
+  /**
+   * Remove specific cache key
+   */
+  static async remove(key: string): Promise<void> {
+    try {
+      await AsyncStorage.removeItem(key);
+    } catch (error) {
+      console.error('Error removing cache key:', error);
+    }
+  }
 }

@@ -233,6 +233,13 @@ export class ApiService {
     }, CacheService.getCacheKeys().STREAM_METADATA);
   }
 
+  static async getCurrentStreamMetadata() {
+    return withRetryAndCache(async () => {
+      const response = await axios.get(`${API_ENDPOINTS.BASE_URL}/stream/metadata/current`);
+      return response.data;
+    }, 'current_stream_metadata', 3, 30 * 1000); // Cache for 30 seconds
+  }
+
   static async createStreamMetadata(data: any) {
     return withRetryAndCache(async () => {
       const response = await apiClient.post('/stream/metadata', data);
