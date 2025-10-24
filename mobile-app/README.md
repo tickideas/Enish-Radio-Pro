@@ -1,50 +1,240 @@
-# Welcome to your Expo app 👋
+# Enish Radio Pro - Mobile Application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A sophisticated cross-platform radio streaming application built with React Native and Expo. This app provides a premium radio listening experience with advanced features including live streaming, sleep timer, and a comprehensive admin panel for content management.
 
-## Get started
+## 🎵 Features
 
-1. Install dependencies
+### Core Radio Features
+- **Live Radio Streaming**: High-quality 24/7 music streaming with automatic reconnection
+- **Audio Player**: Advanced audio controls with play/pause, volume control, and visualizer
+- **Sleep Timer**: Set automatic shutdown timer for uninterrupted listening
+- **Track Information**: Real-time display of current track metadata
+- **Offline Functionality**: Caching and offline data availability
 
+### Admin Panel Features
+- **Dashboard**: Comprehensive statistics and real-time data overview
+- **Social Links Management**: Full CRUD interface for social media links with drag-and-drop reordering
+- **Ad Campaign Management**: Create and manage ad banners with image upload and performance tracking
+- **Analytics Dashboard**: Listener statistics, geographic distribution, and ad performance metrics
+- **User Management**: Role-based access control with admin/moderator roles
+
+### Technical Features
+- **TypeScript**: Full TypeScript support for type safety
+- **Expo Router**: Modern file-based routing system
+- **React Navigation**: Drawer and tab navigation
+- **Performance Monitoring**: Memory usage tracking and app state monitoring
+- **Error Handling**: Comprehensive error handling with retry logic
+- **Caching**: AsyncStorage-based caching with TTL support
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Node.js 20+ 
+- npm or yarn
+- Expo CLI
+- PostgreSQL database (for backend integration)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <your-repo-url>
+   cd Enish-Radio-Pro/mobile-app
+   ```
+
+2. **Install dependencies**
    ```bash
    npm install
    ```
 
-2. Start the app
+3. **Configure environment**
+   - Update API endpoints in `constants/env.development.ts` and `constants/env.production.ts`
+   - Ensure backend server is running and accessible
 
+4. **Start development server**
    ```bash
-   npx expo start
+   npm start
    ```
 
-In the output, you'll find options to open the app in a
+### Running on Devices
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **Android**: `npm run android`
+- **iOS**: `npm run ios` 
+- **Web**: `npm run web`
+- **Expo Go**: Scan QR code from development server
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 📁 Project Structure
 
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+mobile-app/
+├── app/
+│   ├── admin/              # Admin panel screens
+│   │   ├── dashboard.tsx   # Main dashboard
+│   │   ├── social-links.tsx # Social media management
+│   │   ├── ad-banners.tsx  # Ad campaign management
+│   │   ├── analytics.tsx   # Analytics dashboard
+│   │   └── user-management.tsx # User management
+│   ├── index.tsx           # Main radio player screen
+│   ├── settings.tsx        # App settings
+│   ├── sleep-timer.tsx     # Sleep timer screen
+│   ├── about.tsx          # About screen
+│   ├── privacy.tsx        # Privacy policy
+│   └── (tabs)/            # Tab navigation
+├── components/            # Reusable UI components
+├── constants/             # App configuration and constants
+├── hooks/                 # Custom React hooks
+├── services/              # API and utility services
+├── assets/                # Images and static assets
+└── scripts/               # Build and utility scripts
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🛠️ Development Scripts
 
-## Learn more
+### Development
+```bash
+npm start              # Start development server
+npm run android        # Start on Android device/emulator
+npm run ios            # Start on iOS simulator/device
+npm run web            # Start web version
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### Testing
+```bash
+npm test              # Run all tests
+npm run test:watch     # Watch mode for development
+npm run test:coverage  # Generate test coverage report
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+### Building and Deployment
+```bash
+npm run build:dev      # Development build
+npm run build:preview  # Preview build
+npm run build:prod     # Production build
+npm run submit:android # Submit to Google Play
+npm run submit:ios     # Submit to App Store
+```
 
-## Join the community
+### Linting
+```bash
+npm run lint          # Run ESLint
+```
 
-Join our community of developers creating universal apps.
+## 🔧 Configuration
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+### Environment Variables
+Configure API endpoints and other settings in:
+- `constants/env.development.ts` - Development environment
+- `constants/env.production.ts` - Production environment
+
+### EAS Build Configuration
+The app uses Expo Application Services (EAS) for building. Configuration is in `eas.json`:
+- Development builds for testing
+- Preview builds for internal testing
+- Production builds for app store submission
+
+## 🎨 Admin Panel
+
+The mobile app includes a comprehensive admin panel for managing radio station content:
+
+### Accessing Admin Panel
+1. Navigate to the admin section from the main app
+2. Authenticate with admin credentials
+3. Access all management features
+
+### Admin Features
+- **Dashboard**: Real-time statistics and system health
+- **Social Links**: Manage social media links with platform icons and ordering
+- **Ad Management**: Create and track ad campaigns with performance metrics
+- **Analytics**: Detailed listener statistics and geographic data
+- **User Management**: Manage admin users and permissions
+
+## 🔍 Testing
+
+The app includes a comprehensive test suite:
+
+```bash
+# Run all tests
+npm test
+
+# Watch mode for development
+npm run test:watch
+
+# Generate coverage report
+npm run test:coverage
+```
+
+Test files are located in `services/__tests__/` and cover:
+- API service functionality
+- Cache service operations
+- Error handling scenarios
+
+## 📦 Dependencies
+
+### Core Libraries
+- `react` & `react-native` - React Native framework
+- `expo` - Expo SDK for cross-platform development
+- `expo-av` - Audio and video playback
+- `expo-router` - File-based routing
+- `react-navigation` - Navigation system
+
+### UI Components
+- `react-native-elements` - UI component library
+- `react-native-reanimated` - Animations
+- `react-native-gesture-handler` - Gesture support
+
+### Utilities
+- `axios` - HTTP client for API calls
+- `async-storage` - Local data storage
+- `react-native-share` - Sharing functionality
+- `react-native-rate` - App rating
+
+## 🚀 Deployment
+
+### Build Process
+1. **Development Builds**: For testing on physical devices
+2. **Preview Builds**: For internal testing and QA
+3. **Production Builds**: For app store submission
+
+### App Store Submission
+The app supports automated submission to both iOS and Android stores:
+```bash
+npm run submit:ios      # Submit to App Store
+npm run submit:android  # Submit to Google Play
+```
+
+## 🔒 Security
+
+- **HTTPS**: All API communications use HTTPS
+- **JWT Authentication**: Secure token-based authentication
+- **Input Validation**: Comprehensive input sanitization
+- **Secure Storage**: Encrypted storage for sensitive data
+
+## 📊 Performance
+
+- **Caching Strategy**: Intelligent caching with TTL-based invalidation
+- **Memory Management**: Automatic cleanup and leak prevention
+- **Network Optimization**: Request batching and connection pooling
+- **Performance Monitoring**: Real-time performance metrics tracking
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes following the coding standards
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is part of the Enish Radio Pro application suite. Contact the project maintainers for licensing information.
+
+## 🆘 Support
+
+For issues and support:
+- Check the [AGENTS.md](../AGENTS.md) for development guidelines
+- Review the [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) for technical details
+- Examine the [ENV_CONFIG.md](ENV_CONFIG.md) for environment setup
+
+---
+
+*Enish Radio Pro - Delivering premium radio experiences across platforms*
