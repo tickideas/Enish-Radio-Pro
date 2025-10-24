@@ -119,13 +119,12 @@ The Enish Radio Pro admin interface provides a comprehensive web-based dashboard
 ## Technical Requirements
 
 ### Backend Dependencies
-- Node.js 16+
-- Express.js
+- Node.js 20+
+- Hono (Node runtime)
 - PostgreSQL
-- Sequelize ORM
+- Drizzle ORM
 - JWT for authentication
 - Bcrypt for password hashing
-- Multer for file uploads
 - Cloudinary for image hosting (optional)
 
 ### Frontend Features
@@ -149,11 +148,9 @@ NODE_ENV=production
 ```
 
 ### 2. Database Setup
-```sql
--- Run migrations to create tables
-npx sequelize-cli db:migrate
-
--- Seed initial admin user
+```bash
+# Ensure DATABASE_URL is set in backend/.env
+# Optionally run seed script to create an admin user
 node backend/scripts/seedAdmin.js
 ```
 

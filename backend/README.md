@@ -9,18 +9,19 @@ This is the backend API server for the Enish Radio Pro mobile application. It pr
 - **Ad Banner Management**: Upload and manage ad campaigns with Cloudinary integration
 - **Stream Metadata**: Manage track information and streaming data
 - **Admin Panel**: Full admin interface for content management
-- **Security**: Rate limiting, CORS, helmet security headers
+- **Security**: Rate limiting, CORS, secure security headers
 - **File Upload**: Cloudinary integration for image storage
 
 ## Tech Stack
 
 - **Runtime**: Node.js 20+
-- **Framework**: Express.js
-- **Database**: PostgreSQL with Sequelize ORM
+- **Framework**: Hono (Node runtime)
+- **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: JWT (JSON Web Tokens) + bcryptjs
-- **File Storage**: Cloudinary for ad banner images
-- **Security**: Helmet, CORS, Express Rate Limiting
-- **Validation**: Input validation and sanitization with Sequelize
+- **File Storage**: Cloudinary for ad banner images (optional via JSON fields; direct upload planned)
+- **Security**: Secure headers (hono/secure-headers), CORS, basic rate limiting
+
+Note: This codebase previously used Express and Sequelize; it has been migrated to Hono + Drizzle for improved performance, TypeScript ergonomics (future‑proof), and easier Edge compatibility.
 
 ## API Endpoints
 
@@ -51,13 +52,13 @@ This is the backend API server for the Enish Radio Pro mobile application. It pr
 
 ### Stream Metadata
 - `GET /api/stream/metadata` - Get current stream metadata (public)
-- `GET /api/stream/metadata/history` - Get recent metadata history (public)
+- `GET /api/stream/metadata/recent` - Get recent metadata history (public)
 - `GET /api/stream/metadata/admin` - Get all metadata (admin only)
 - `GET /api/stream/metadata/:id` - Get single metadata (admin only)
 - `POST /api/stream/metadata` - Create new metadata (admin only)
 - `PUT /api/stream/metadata/:id` - Update metadata (admin only)
 - `DELETE /api/stream/metadata/:id` - Delete metadata (admin only)
-- `POST /api/stream/metadata/:id/end` - End current track (admin only)
+  
 
 ### Health Check
 - `GET /api/health` - Server health check
@@ -77,26 +78,25 @@ This is the backend API server for the Enish Radio Pro mobile application. It pr
    - Server port and environment
 
 3. **Database Setup**:
-   - Ensure PostgreSQL is running
-   - Create database: `createdb enish-radio-pro`
-   - The database will be created automatically on first run
+   - Ensure PostgreSQL is running and `DATABASE_URL` is set
+   - The Drizzle client will connect automatically; use `backend/scripts/createSchema.js` if needed
 
-4. **Start Server**:
+4. **Start Server (Hono)**:
    ```bash
-   npm start          # Production
-   npm run dev        # Development with nodemon
+   npm start          # Production (Hono)
+   npm run dev        # Development with nodemon (Hono)
    ```
 
 ## Security Features
 
 - **Rate Limiting**: 100 requests per 15 minutes per IP
 - **CORS**: Configured for development and production origins
-- **Helmet**: Security headers for Express.js
+- **Secure Headers**: Security headers with `hono/secure-headers`
 - **Input Validation**: All inputs are validated and sanitized
 - **Password Hashing**: bcrypt with salt rounds (12)
 - **JWT Tokens**: Secure token-based authentication
 
-## Database Models
+## Database Models (Drizzle ORM)
 
 ### User Schema
 - Email (unique, required)
@@ -135,7 +135,12 @@ All endpoints include comprehensive error handling:
 
 ## Development
 
-The API includes detailed logging and error reporting for debugging. Use nodemon for development to automatically restart on file changes.
+The API includes detailed logging and error reporting for debugging. Use `nodemon` for development to automatically restart on file changes.
+
+### Notes on migration
+- The server entry is now `backend/server.hono.js` (Express `server.js` is deprecated).
+- CORS, logging, and security headers are provided by Hono middleware.
+- Ad image uploads are currently JSON‑based (imageUrl) in API; direct multipart uploads will be added with Hono multipart middleware.
 
 ## Production Considerations
 

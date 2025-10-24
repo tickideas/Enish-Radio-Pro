@@ -1,12 +1,13 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { COLORS, APP_CONFIG } from '@/constants/radio';
+import { COLORS, APP_CONFIG, API_ENDPOINTS } from '@/constants/radio';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -15,7 +16,14 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Drawer
         screenOptions={{
-          headerShown: false,
+          headerShown: true,
+          headerStyle: {
+            backgroundColor: colorScheme === 'dark' ? COLORS.BACKGROUND_DARK : COLORS.PRIMARY,
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
           drawerType: 'slide',
           drawerStyle: {
             width: 280,
@@ -83,10 +91,55 @@ export default function RootLayout() {
 function CustomDrawerContent(props: any) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const [socialLinks, setSocialLinks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSocialLink = (platform: string) => {
-    // This will be implemented with backend integration
-    console.log(`Opening ${platform}`);
+  useEffect(() => {
+    loadSocialLinks();
+  }, []);
+
+  const loadSocialLinks = async () => {
+    try {
+      setLoading(true);
+      // Use the public endpoint for active social links
+      const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.SOCIAL_LINKS}/active`);
+      const data = await response.json();
+      if (data.success && data.data) {
+        // Sort by order
+        const sortedLinks = data.data.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+        setSocialLinks(sortedLinks);
+      }
+    } catch (error) {
+      console.error('Error loading social links:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSocialLink = async (url: string) => {
+    try {
+      const canOpen = await Linking.canOpenURL(url);
+      if (canOpen) {
+        await Linking.openURL(url);
+      } else {
+        console.error('Cannot open URL:', url);
+      }
+    } catch (error) {
+      console.error('Error opening URL:', error);
+    }
+  };
+
+  const getIconName = (platform: string): any => {
+    const iconMap: { [key: string]: any } = {
+      facebook: 'logo-facebook',
+      twitter: 'logo-twitter',
+      instagram: 'logo-instagram',
+      youtube: 'logo-youtube',
+      tiktok: 'logo-tiktok',
+      linkedin: 'logo-linkedin',
+      website: 'globe',
+    };
+    return iconMap[platform.toLowerCase()] || 'link';
   };
 
   return (
@@ -149,32 +202,25 @@ function CustomDrawerContent(props: any) {
         <Text style={[styles.sectionTitle, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>
           Follow Us
         </Text>
-        <View style={styles.socialLinks}>
-          <TouchableOpacity
-            style={styles.socialLink}
-            onPress={() => handleSocialLink('facebook')}
-          >
-            <Ionicons name="logo-facebook" size={24} color={COLORS.PRIMARY} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.socialLink}
-            onPress={() => handleSocialLink('twitter')}
-          >
-            <Ionicons name="logo-twitter" size={24} color={COLORS.PRIMARY} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.socialLink}
-            onPress={() => handleSocialLink('instagram')}
-          >
-            <Ionicons name="logo-instagram" size={24} color={COLORS.PRIMARY} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.socialLink}
-            onPress={() => handleSocialLink('youtube')}
-          >
-            <Ionicons name="logo-youtube" size={24} color={COLORS.PRIMARY} />
-          </TouchableOpacity>
-        </View>
+        {loading ? (
+          <ActivityIndicator size="small" color={COLORS.PRIMARY} style={{ marginTop: 10 }} />
+        ) : socialLinks.length > 0 ? (
+          <View style={styles.socialLinks}>
+            {socialLinks.map((link) => (
+              <TouchableOpacity
+                key={link.id}
+                style={styles.socialLink}
+                onPress={() => handleSocialLink(link.url)}
+              >
+                <Ionicons name={getIconName(link.platform)} size={24} color={COLORS.PRIMARY} />
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          <Text style={[styles.noLinksText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT, opacity: 0.6 }]}>
+            No social links available
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -223,8 +269,14 @@ const styles = StyleSheet.create({
   socialLinks: {
     flexDirection: 'row',
     justifyContent: 'space-around',
+    flexWrap: 'wrap',
   },
   socialLink: {
     padding: 10,
+  },
+  noLinksText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
   },
 });

@@ -6,30 +6,18 @@ import dotenv from 'dotenv';
 // Load environment variables first
 dotenv.config();
 
-// Database configuration - DEBUG: Check if env var is loaded
+// Database configuration
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
   console.error('❌ DATABASE_URL environment variable is not set!');
   console.error('💡 Please ensure your .env file is in the correct location and contains DATABASE_URL');
-} else {
-  console.log('✅ DATABASE_URL found in environment variables');
 }
 
 const finalDatabaseUrl = databaseUrl || 'postgresql://username:password@localhost:5432/enish-radio-pro';
 
-// Parse database URL to determine SSL requirements and connection details
+// Parse database URL to determine SSL requirements
 const isExternalDb = finalDatabaseUrl.includes('://') && !finalDatabaseUrl.includes('localhost');
 const needsSsl = finalDatabaseUrl.includes('sslmode=require') || finalDatabaseUrl.includes('?ssl') || isExternalDb;
-
-// Debug logging
-console.log('🔍 Database connection debug:', {
-  databaseUrl: databaseUrl ? databaseUrl.replace(/:[^:@]*@/, ':***@') : 'No URL',
-  isExternalDb,
-  needsSsl,
-  hasSslMode: finalDatabaseUrl.includes('sslmode=require'),
-  hasSslParam: finalDatabaseUrl.includes('?ssl'),
-  isLocalhost: finalDatabaseUrl.includes('localhost')
-});
 
 // For Prisma databases, we need to ensure SSL is properly configured
 const sslConfig = needsSsl ? {
@@ -66,36 +54,18 @@ async function testConnection() {
     // Additional health check query
     const result = await pool.query('SELECT 1 as health_check');
     
-    console.log('✅ Connected to PostgreSQL database with Drizzle ORM');
-    console.log('📊 Database health check passed');
-    console.log('🌐 Connection details:', {
-      host: pool.options.host || 'external',
-      port: pool.options.port,
-      database: pool.options.database,
-      ssl: !!pool.options.ssl
-    });
+    console.log('✅ Database connected successfully');
     return true;
   } catch (error) {
-    console.error('❌ PostgreSQL connection error:', {
-      message: error.message || 'No error message available',
-      code: error.code || 'No error code',
-      errno: error.errno || 'No errno',
-      syscall: error.syscall || 'No syscall info',
-      address: error.address || 'No address info',
-      port: error.port || 'No port info',
-      ssl: !!pool.options.ssl,
-      host: pool.options.host || 'No host info',
-      databaseUrl: finalDatabaseUrl ? finalDatabaseUrl.replace(/:[^:@]*@/, ':***@') : 'No URL'
-    });
+    console.error('❌ PostgreSQL connection error:', error.message);
     
     // Provide specific guidance based on error type
     if (error.code === 'ECONNREFUSED') {
       console.error('💡 Connection refused - Check if PostgreSQL is running and accessible');
-      console.error('💡 For external databases, verify the connection URL and network access');
     } else if (error.code === 'ENOTFOUND') {
       console.error('💡 Host not found - Check the database hostname in DATABASE_URL');
-    } else if (error.message.includes('SSL')) {
-      console.error('💡 SSL connection failed - Check SSL configuration and certificates');
+    } else if (error.message && error.message.includes('SSL')) {
+      console.error('💡 SSL connection failed - Check SSL configuration');
     }
     
     return false;

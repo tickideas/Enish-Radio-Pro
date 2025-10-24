@@ -15,9 +15,12 @@ export const APP_CONFIG = {
 // Sleep Timer Options (in minutes)
 export const SLEEP_TIMER_OPTIONS = [5, 10, 15, 30, 60];
 
-// API Endpoints (to be configured with backend)
+// API Endpoints
+// Import the environment-specific configuration
+import { API_URL } from './env';
+
 export const API_ENDPOINTS = {
-  BASE_URL: __DEV__ ? 'http://localhost:3000/api' : 'https://api.enishradio.com/api',
+  BASE_URL: API_URL,
   SOCIAL_LINKS: '/social-links',
   AD_BANNERS: '/ads',
   STREAM_METADATA: '/stream/metadata',

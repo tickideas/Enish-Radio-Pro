@@ -7,7 +7,7 @@ This document provides comprehensive guidelines for AI coding agents working on 
 **Enish Radio Pro** is a cross-platform radio streaming application with a custom backend management system. The project consists of:
 
 - **Mobile App**: Expo/React Native application for Android and iOS
-- **Backend API**: Node.js/Express server with PostgreSQL database
+- **Backend API**: Node.js/Hono server with PostgreSQL database
 - **Admin Panel**: Web-based interface for content management
 
 ### Technology Stack
@@ -26,19 +26,19 @@ This document provides comprehensive guidelines for AI coding agents working on 
 
 #### Backend
 - **Runtime**: Node.js 20+
-- **Framework**: Express.js
+- **Framework**: Hono (Node runtime)
 - **Database**: PostgreSQL with Drizzle ORM
 - **Authentication**: JWT + bcryptjs
 - **File Storage**: Cloudinary integration
-- **Security**: Helmet, CORS, Express Rate Limiting
-- **Logging**: Morgan
+- **Security**: Secure Headers (hono/secure-headers), CORS, Rate Limiting
+- **Logging**: Hono logger
 - **Development**: Nodemon for hot reload
 
 ### Project Structure
 
 ```
 Enish-Radio-Pro/
-├── backend/                 # Node.js Express API server
+├── backend/                 # Node.js Hono API server
 │   ├── drizzle/            # Database schema and models
 │   ├── routes/             # API route handlers
 │   ├── middleware/         # Authentication and security
@@ -185,16 +185,16 @@ import { ImageAssets } from '@/assets/images';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// 2. External dependencies
-import express from 'express';
-import cors from 'cors';
-import helmet from 'helmet';
+// 2. External dependencies (Hono)
+import { Hono } from 'hono';
+import { logger } from 'hono/logger';
+import { secureHeaders } from 'hono/secure-headers';
+import { cors } from 'hono/cors';
 
 // 3. Internal modules (grouped by directory)
 import { testConnection, syncSchema } from './drizzle/db.js';
 import UserModel from './drizzle/models/User.js';
-import { adminAuth } from './middleware/auth.js';
-import socialLinksRoutes from './routes/socialLinks.js';
+// Hono routes are defined in `server.hono.js`
 ```
 
 ### Type Guidelines
@@ -401,16 +401,40 @@ Both frontend and backend should use consistent error response formats:
 
 ### API Integration
 
-#### Base URLs
+#### Base URLs and Environment Configuration
+
+The mobile app uses a TypeScript-based environment configuration system that automatically selects the correct API endpoint based on the build mode:
+
 ```typescript
-// Mobile app API configuration
-export const API_ENDPOINTS = {
-  BASE_URL: __DEV__ ? 'http://localhost:3000/api' : 'https://api.enishradio.com/api',
-  SOCIAL_LINKS: '/social-links',
-  AD_BANNERS: '/ads',
-  STREAM_METADATA: '/stream/metadata',
-};
+// Mobile app environment configuration
+// Located in: mobile-app/constants/env.ts
+
+// Development (npm start, npm run android/ios)
+- Uses: mobile-app/constants/env.development.ts
+- API URL: http://192.168.1.80:3000/api (local network IP)
+- Debug mode: ON
+- Analytics: OFF
+
+// Production (EAS builds, npm run build:prod)
+- Uses: mobile-app/constants/env.production.ts
+- API URL: https://api.enishradio.com/api
+- Debug mode: OFF
+- Analytics: ON
 ```
+
+**Important**: For local development, update `env.development.ts` with your computer's network IP address:
+
+```bash
+# Find your IP address
+ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1
+```
+
+Then update `mobile-app/constants/env.development.ts`:
+```typescript
+export const DEVELOPMENT_API_URL = 'http://YOUR_IP_ADDRESS:3000/api';
+```
+
+**Note**: Do not use `.env` files for React Native/Expo apps. The TypeScript-based configuration works natively without extra dependencies and provides type safety.
 
 #### Authentication
 - **JWT Tokens**: Backend uses JWT for authentication

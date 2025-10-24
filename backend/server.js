@@ -1,3 +1,5 @@
+// DEPRECATED: This Express server has been superseded by Hono (see server.hono.js)
+// Kept for reference during migration. Use `npm start` or `npm run dev` to run the Hono server.
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
