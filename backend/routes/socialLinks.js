@@ -42,6 +42,25 @@ router.get('/active', async (req, res) => {
   }
 });
 
+// GET /api/social-links/admin - Get all social links for admin dashboard (admin only)
+router.get('/admin', adminAuth, async (req, res) => {
+  try {
+    const socialLinks = await SocialLinkModel.getAll();
+    
+    res.json({
+      success: true,
+      data: socialLinks,
+      count: socialLinks.length
+    });
+  } catch (error) {
+    console.error('Error fetching social links for admin:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch social links for admin dashboard'
+    });
+  }
+});
+
 // GET /api/social-links/:id - Get single social link (admin only)
 router.get('/:id', adminAuth, async (req, res) => {
   try {

@@ -223,12 +223,12 @@
     
     <div class="container">
         <div class="nav-tabs">
-            <button class="nav-tab active" onclick="showTab('dashboard')">Dashboard</button>
-            <button class="nav-tab" onclick="showTab('social-links')">Social Links</button>
-            <button class="nav-tab" onclick="showTab('ad-banners')">Ad Banners</button>
-            <button class="nav-tab" onclick="showTab('stream-metadata')">Stream Metadata</button>
-            <button class="nav-tab" onclick="showTab('user-management')">User Management</button>
-            <button class="nav-tab" onclick="showTab('analytics')">Analytics</button>
+            <button class="nav-tab active" onclick="showTab('dashboard', event)">Dashboard</button>
+            <button class="nav-tab" onclick="showTab('social-links', event)">Social Links</button>
+            <button class="nav-tab" onclick="showTab('ad-banners', event)">Ad Banners</button>
+            <button class="nav-tab" onclick="showTab('stream-metadata', event)">Stream Metadata</button>
+            <button class="nav-tab" onclick="showTab('user-management', event)">User Management</button>
+            <button class="nav-tab" onclick="showTab('analytics', event)">Analytics</button>
         </div>
         
         <!-- Dashboard Tab -->
@@ -375,7 +375,7 @@
         document.getElementById('userEmail').textContent = currentUser.email || 'Admin';
         
         // Tab management
-        function showTab(tabName) {
+        function showTab(tabName, event) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');

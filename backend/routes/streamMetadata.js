@@ -60,6 +60,25 @@ router.get('/active', adminAuth, async (req, res) => {
   }
 });
 
+// GET /api/stream/metadata/admin - Get all stream metadata for admin dashboard (admin only)
+router.get('/admin', adminAuth, async (req, res) => {
+  try {
+    const streamMetadata = await StreamMetadataModel.getAll();
+    
+    res.json({
+      success: true,
+      data: streamMetadata,
+      count: streamMetadata.length
+    });
+  } catch (error) {
+    console.error('Error fetching stream metadata for admin:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch stream metadata for admin dashboard'
+    });
+  }
+});
+
 // GET /api/stream/metadata/current - Get currently playing track (public)
 router.get('/current', async (req, res) => {
   try {
