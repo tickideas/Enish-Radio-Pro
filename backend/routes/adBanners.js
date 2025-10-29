@@ -1,10 +1,17 @@
-const express = require('express');
+import express from 'express';
+import multer from 'multer';
+import cloudinary from 'cloudinary';
+import AdBannerModel from '../drizzle/models/AdBanner.js';
+import { adminAuth } from '../middleware/auth.js';
+
 const router = express.Router();
-const multer = require('multer');
-const cloudinary = require('cloudinary').v2;
-const { AdBanner } = require('../models/AdBanner');
-const { adminAuth } = require('../middleware/auth');
-const { Op } = require('sequelize');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Configure Cloudinary
 cloudinary.config({
@@ -25,15 +32,7 @@ const upload = multer({
 // GET /api/ads - Get active ad banners (public)
 router.get('/', async (req, res) => {
   try {
-    const now = new Date();
-    const adBanners = await AdBanner.findAll({
-      where: {
-        isActive: true,
-        startDate: { [Op.lte]: now },
-        endDate: { [Op.gte]: now }
-      },
-      order: [['priority', 'DESC'], ['createdAt', 'DESC']]
-    });
+    const adBanners = await AdBannerModel.getActive();
     
     res.json({
       success: true,
@@ -52,9 +51,7 @@ router.get('/', async (req, res) => {
 // GET /api/ads/admin - Get all ad banners (admin only)
 router.get('/admin', adminAuth, async (req, res) => {
   try {
-    const adBanners = await AdBanner.findAll({
-      order: [['createdAt', 'DESC']]
-    });
+    const adBanners = await AdBannerModel.getAll();
     
     res.json({
       success: true,
@@ -73,7 +70,7 @@ router.get('/admin', adminAuth, async (req, res) => {
 // GET /api/ads/:id - Get single ad banner (admin only)
 router.get('/:id', adminAuth, async (req, res) => {
   try {
-    const adBanner = await AdBanner.findByPk(req.params.id);
+    const adBanner = await AdBannerModel.findById(req.params.id);
     
     if (!adBanner) {
       return res.status(404).json({
@@ -140,7 +137,7 @@ router.post('/', adminAuth, upload.single('image'), async (req, res) => {
       }
     }
     
-    const adBanner = new AdBanner({
+    const adBanner = await AdBannerModel.create({
       title,
       imageUrl,
       cloudinaryPublicId,
@@ -150,8 +147,6 @@ router.post('/', adminAuth, upload.single('image'), async (req, res) => {
       endDate: new Date(endDate),
       priority: priority || 0
     });
-    
-    await adBanner.save();
     
     res.status(201).json({
       success: true,
@@ -172,7 +167,7 @@ router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
   try {
     const { title, targetUrl, description, startDate, endDate, priority, isActive } = req.body;
     
-    const adBanner = await AdBanner.findByPk(req.params.id);
+    const adBanner = await AdBannerModel.findById(req.params.id);
     if (!adBanner) {
       return res.status(404).json({
         success: false,
@@ -222,19 +217,24 @@ router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
     }
     
     // Update fields
-    if (title) adBanner.title = title;
-    if (targetUrl) adBanner.targetUrl = targetUrl;
-    if (description) adBanner.description = description;
-    if (startDate) adBanner.startDate = new Date(startDate);
-    if (endDate) adBanner.endDate = new Date(endDate);
-    if (priority !== undefined) adBanner.priority = priority;
-    if (isActive !== undefined) adBanner.isActive = isActive;
+    const updateData = {};
+    if (title) updateData.title = title;
+    if (targetUrl) updateData.targetUrl = targetUrl;
+    if (description) updateData.description = description;
+    if (startDate) updateData.startDate = new Date(startDate);
+    if (endDate) updateData.endDate = new Date(endDate);
+    if (priority !== undefined) updateData.priority = priority;
+    if (isActive !== undefined) updateData.isActive = isActive;
+    if (req.file) {
+      updateData.imageUrl = adBanner.imageUrl;
+      updateData.cloudinaryPublicId = adBanner.cloudinaryPublicId;
+    }
     
-    await adBanner.save();
+    const updatedAdBanner = await AdBannerModel.update(req.params.id, updateData);
     
     res.json({
       success: true,
-      data: adBanner,
+      data: updatedAdBanner,
       message: 'Ad banner updated successfully'
     });
   } catch (error) {
@@ -249,7 +249,7 @@ router.put('/:id', adminAuth, upload.single('image'), async (req, res) => {
 // DELETE /api/ads/:id - Delete ad banner (admin only)
 router.delete('/:id', adminAuth, async (req, res) => {
   try {
-    const adBanner = await AdBanner.findByPk(req.params.id);
+    const adBanner = await AdBannerModel.findById(req.params.id);
     if (!adBanner) {
       return res.status(404).json({
         success: false,
@@ -267,7 +267,7 @@ router.delete('/:id', adminAuth, async (req, res) => {
       });
     }
     
-    await AdBanner.findByIdAndDelete(req.params.id);
+    await AdBannerModel.delete(req.params.id);
     
     res.json({
       success: true,
@@ -285,7 +285,7 @@ router.delete('/:id', adminAuth, async (req, res) => {
 // POST /api/ads/:id/click - Track ad click (public)
 router.post('/:id/click', async (req, res) => {
   try {
-    const adBanner = await AdBanner.findByPk(req.params.id);
+    const adBanner = await AdBannerModel.findById(req.params.id);
     if (!adBanner) {
       return res.status(404).json({
         success: false,
@@ -294,8 +294,7 @@ router.post('/:id/click', async (req, res) => {
     }
     
     // Increment click count
-    adBanner.clickCount += 1;
-    await adBanner.save();
+    const updatedBanner = await AdBannerModel.incrementClick(req.params.id);
     
     res.json({
       success: true,
@@ -310,4 +309,4 @@ router.post('/:id/click', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;

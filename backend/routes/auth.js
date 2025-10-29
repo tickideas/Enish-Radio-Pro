@@ -1,8 +1,10 @@
-const express = require('express');
+import express from 'express';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import UserModel from '../drizzle/models/User.js';
+import { adminAuth } from '../middleware/auth.js';
+
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { User } = require('../models/User'); // We'll create this model later
 
 // POST /api/auth/login - Login user
 router.post('/login', async (req, res) => {
@@ -17,7 +19,7 @@ router.post('/login', async (req, res) => {
     }
     
     // Find user by email
-    const user = await User.findOne({ where: { email } });
+    const user = await UserModel.findByEmail(email);
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -26,7 +28,7 @@ router.post('/login', async (req, res) => {
     }
     
     // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
+    const isMatch = await UserModel.comparePassword(password, user.password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -34,9 +36,12 @@ router.post('/login', async (req, res) => {
       });
     }
     
+    // Update last login
+    await UserModel.updateLastLogin(user.id);
+    
     // Create JWT token
     const payload = {
-      id: user._id,
+      id: user.id,
       email: user.email,
       role: user.role
     };
@@ -51,7 +56,7 @@ router.post('/login', async (req, res) => {
       success: true,
       token,
       user: {
-        id: user._id,
+        id: user.id,
         email: user.email,
         role: user.role
       }
@@ -66,7 +71,7 @@ router.post('/login', async (req, res) => {
 });
 
 // POST /api/auth/register - Register new user (admin only)
-router.post('/register', async (req, res) => {
+router.post('/register', adminAuth, async (req, res) => {
   try {
     const { email, password, role = 'admin' } = req.body;
     
@@ -78,7 +83,7 @@ router.post('/register', async (req, res) => {
     }
     
     // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await UserModel.findByEmail(email);
     if (existingUser) {
       return res.status(400).json({
         success: false,
@@ -86,18 +91,12 @@ router.post('/register', async (req, res) => {
       });
     }
     
-    // Hash password
-    const saltRounds = 12;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-    
     // Create new user
-    const user = new User({
+    const user = await UserModel.create({
       email,
-      password: hashedPassword,
+      password,
       role
     });
-    
-    await user.save();
     
     res.status(201).json({
       success: true,
@@ -113,10 +112,10 @@ router.post('/register', async (req, res) => {
 });
 
 // POST /api/auth/change-password - Change password (authenticated)
-router.post('/change-password', async (req, res) => {
+router.post('/change-password', adminAuth, async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id; // From auth middleware
+    const userId = req.user.id;
     
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
@@ -126,7 +125,7 @@ router.post('/change-password', async (req, res) => {
     }
     
     // Find user
-    const user = await User.findById(userId);
+    const user = await UserModel.findById(userId);
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -135,7 +134,7 @@ router.post('/change-password', async (req, res) => {
     }
     
     // Check current password
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    const isMatch = await UserModel.comparePassword(currentPassword, user.password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -143,13 +142,10 @@ router.post('/change-password', async (req, res) => {
       });
     }
     
-    // Hash new password
+    // Hash new password and update
     const saltRounds = 12;
     const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
-    
-    // Update password
-    user.password = hashedNewPassword;
-    await user.save();
+    await UserModel.updatePassword(userId, hashedNewPassword);
     
     res.json({
       success: true,
@@ -179,12 +175,21 @@ router.get('/verify', async (req, res) => {
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
     
+    // Get fresh user data
+    const user = await UserModel.findById(decoded.id);
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
     res.json({
       success: true,
       user: {
-        id: decoded.id,
-        email: decoded.email,
-        role: decoded.role
+        id: user.id,
+        email: user.email,
+        role: user.role
       }
     });
   } catch (error) {
@@ -226,11 +231,20 @@ router.post('/refresh', async (req, res) => {
     const token = authHeader.substring(7);
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', { ignoreExpiration: true });
     
+    // Get fresh user data to ensure user still exists and is active
+    const user = await UserModel.findById(decoded.id);
+    if (!user || !user.isActive) {
+      return res.status(401).json({
+        success: false,
+        error: 'User not found or inactive'
+      });
+    }
+    
     // Create new token
     const payload = {
-      id: decoded.id,
-      email: decoded.email,
-      role: decoded.role
+      id: user.id,
+      email: user.email,
+      role: user.role
     };
     
     const newToken = jwt.sign(
@@ -252,4 +266,156 @@ router.post('/refresh', async (req, res) => {
   }
 });
 
-module.exports = router;
+// GET /api/auth/users - Get all users (admin only)
+router.get('/users', adminAuth, async (req, res) => {
+  try {
+    const users = await UserModel.findAll();
+    
+    res.json({
+      success: true,
+      users
+    });
+  } catch (error) {
+    console.error('Get users error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while fetching users'
+    });
+  }
+});
+
+// PUT /api/auth/users/:id/role - Update user role (admin only)
+router.put('/users/:id/role', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { role } = req.body;
+    
+    if (!role || !['admin', 'moderator'].includes(role)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Role is required and must be either "admin" or "moderator"'
+      });
+    }
+    
+    const user = await UserModel.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Update user role
+    await UserModel.update(id, { role });
+    
+    res.json({
+      success: true,
+      message: 'User role updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: role
+      }
+    });
+  } catch (error) {
+    console.error('Update user role error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while updating user role'
+    });
+  }
+});
+
+// PUT /api/auth/users/:id/status - Update user status (admin only)
+router.put('/users/:id/status', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    
+    if (typeof isActive !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        error: 'isActive status is required and must be a boolean'
+      });
+    }
+    
+    const user = await UserModel.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Prevent disabling the last admin
+    if (!isActive && user.role === 'admin') {
+      const adminCount = await UserModel.countByRole('admin', true);
+      if (adminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot disable the last active admin user'
+        });
+      }
+    }
+    
+    // Update user status
+    await UserModel.update(id, { isActive });
+    
+    res.json({
+      success: true,
+      message: 'User status updated successfully',
+      user: {
+        id: user.id,
+        email: user.email,
+        isActive: isActive
+      }
+    });
+  } catch (error) {
+    console.error('Update user status error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while updating user status'
+    });
+  }
+});
+
+// DELETE /api/auth/users/:id - Delete user (admin only)
+router.delete('/users/:id', adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const user = await UserModel.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: 'User not found'
+      });
+    }
+    
+    // Prevent deleting the last admin
+    if (user.role === 'admin') {
+      const adminCount = await UserModel.countByRole('admin', true);
+      if (adminCount <= 1) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot delete the last active admin user'
+        });
+      }
+    }
+    
+    await UserModel.delete(id);
+    
+    res.json({
+      success: true,
+      message: 'User deleted successfully'
+    });
+  } catch (error) {
+    console.error('Delete user error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Server error while deleting user'
+    });
+  }
+});
+
+export default router;
