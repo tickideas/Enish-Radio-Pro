@@ -6,10 +6,10 @@ export const RADIO_STREAMS = {
 
 // App Configuration
 export const APP_CONFIG = {
-  NAME: 'Enish Radio Pro',
+  NAME: 'Enish Radio',
   VERSION: '1.0.0',
-  SUPPORT_EMAIL: 'support@enishradio.com',
-  WEBSITE: 'https://enishradio.com',
+  SUPPORT_EMAIL: 'contact@enish.co.uk',
+  WEBSITE: 'https://www.enish.co.uk',
 };
 
 // Sleep Timer Options (in minutes)
@@ -22,6 +22,7 @@ import { API_URL } from './env';
 export const API_ENDPOINTS = {
   BASE_URL: API_URL,
   SOCIAL_LINKS: '/social-links',
+  MENU_ITEMS: '/menu-items',
   AD_BANNERS: '/ads',
   STREAM_METADATA: '/stream/metadata',
 };

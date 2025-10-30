@@ -4,6 +4,7 @@ import { pgTable, serial, uuid, varchar, text, integer, boolean, date, timestamp
 export const userRoleEnum = pgEnum('user_role', ['admin', 'moderator']);
 export const socialLinkPlatformEnum = pgEnum('social_link_platform', ['facebook', 'twitter', 'instagram', 'youtube', 'website', 'tiktok', 'linkedin']);
 export const streamSourceEnum = pgEnum('stream_source', ['radioking', 'manual', 'api']);
+export const menuItemTypeEnum = pgEnum('menu_item_type', ['internal', 'external', 'action']);
 
 // Users table
 export const users = pgTable('users', {
@@ -24,6 +25,19 @@ export const socialLinks = pgTable('social_links', {
   url: varchar('url', { length: 500 }).notNull(),
   displayName: varchar('display_name', { length: 100 }).notNull(),
   icon: varchar('icon', { length: 50 }).notNull(),
+  isActive: boolean('is_active').notNull().default(true),
+  order: integer('order').notNull().default(0),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow()
+});
+
+export const menuItems = pgTable('menu_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  title: varchar('title', { length: 150 }).notNull(),
+  subtitle: varchar('subtitle', { length: 255 }),
+  type: menuItemTypeEnum('type').notNull().default('internal'),
+  target: varchar('target', { length: 500 }).notNull(),
+  icon: varchar('icon', { length: 50 }).notNull().default('menu'),
   isActive: boolean('is_active').notNull().default(true),
   order: integer('order').notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
@@ -54,7 +68,8 @@ export const adBanners = pgTable('ad_banners', {
 export const schema = {
   users,
   socialLinks,
-  adBanners
+  adBanners,
+  menuItems
 };
 
 export default schema;

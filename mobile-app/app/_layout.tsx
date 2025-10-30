@@ -3,12 +3,50 @@ import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
 import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
+
+import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { COLORS, APP_CONFIG, API_ENDPOINTS } from '@/constants/radio';
 import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext';
+
+type MenuItem = {
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  type: 'internal' | 'external' | 'action';
+  target: string;
+  icon?: string | null;
+  order?: number | null;
+};
+
+const RATE_APP_ACTION = 'rate_app';
+
+const DEFAULT_MENU_ITEMS: MenuItem[] = [
+  { id: 'default-home', title: 'Home', type: 'internal', target: 'index', icon: 'home', order: 0 },
+  { id: 'default-about', title: 'About', type: 'internal', target: 'about', icon: 'information-circle', order: 1 },
+  { id: 'default-privacy', title: 'Privacy Policy', type: 'internal', target: 'privacy', icon: 'lock-closed', order: 2 },
+  { id: 'default-settings', title: 'Settings', type: 'internal', target: 'settings', icon: 'settings', order: 3 },
+  { id: 'default-sleep', title: 'Sleep Timer', type: 'internal', target: 'sleep-timer', icon: 'moon', order: 4 },
+  { id: 'default-rate', title: 'Rate App', type: 'action', target: RATE_APP_ACTION, icon: 'star', order: 5 },
+];
+
+const normalizeOrder = (value: unknown): number => {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number.parseInt(value, 10);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+
+  return 0;
+};
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -46,22 +84,12 @@ export default function RootLayout() {
             }}
           />
           <Drawer.Screen
-            name="sleep-timer"
+            name="about"
             options={{
-              title: 'Sleep Timer',
-              drawerLabel: 'Sleep Timer',
+              title: 'About',
+              drawerLabel: 'About',
               drawerIcon: ({ color, size }) => (
-                <Ionicons name="moon" size={size} color={color} />
-              ),
-            }}
-          />
-          <Drawer.Screen
-            name="settings"
-            options={{
-              title: 'Settings',
-              drawerLabel: 'Settings',
-              drawerIcon: ({ color, size }) => (
-                <Ionicons name="settings" size={size} color={color} />
+                <Ionicons name="information-circle" size={size} color={color} />
               ),
             }}
           />
@@ -76,12 +104,22 @@ export default function RootLayout() {
             }}
           />
           <Drawer.Screen
-            name="about"
+            name="settings"
             options={{
-              title: 'About',
-              drawerLabel: 'About',
+              title: 'Settings',
+              drawerLabel: 'Settings',
               drawerIcon: ({ color, size }) => (
-                <Ionicons name="information-circle" size={size} color={color} />
+                <Ionicons name="settings" size={size} color={color} />
+              ),
+            }}
+          />
+          <Drawer.Screen
+            name="sleep-timer"
+            options={{
+              title: 'Sleep Timer',
+              drawerLabel: 'Sleep Timer',
+              drawerIcon: ({ color, size }) => (
+                <Ionicons name="moon" size={size} color={color} />
               ),
             }}
           />
@@ -92,49 +130,142 @@ export default function RootLayout() {
   );
 }
 
-function CustomDrawerContent(props: any) {
+function CustomDrawerContent(props: DrawerContentComponentProps) {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const [menuItems, setMenuItems] = useState<MenuItem[]>(DEFAULT_MENU_ITEMS);
+  const [menuLoading, setMenuLoading] = useState(true);
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [socialLoading, setSocialLoading] = useState(true);
 
-  useEffect(() => {
-    loadSocialLinks();
+  const loadMenuItems = useCallback(async () => {
+    setMenuLoading(true);
+    let resolved = false;
+    try {
+      const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.MENU_ITEMS}`);
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        const activeItems: MenuItem[] = data.data
+          .filter((item: any) => item && (item.isActive ?? true))
+          .map((item: any, index: number): MenuItem => ({
+            id: item.id ?? `menu-${index}`,
+            title:
+              typeof item.title === 'string' && item.title.trim().length > 0
+                ? item.title.trim()
+                : 'Menu Item',
+            subtitle:
+              typeof item.subtitle === 'string' && item.subtitle.trim().length > 0
+                ? item.subtitle.trim()
+                : null,
+            type: ['internal', 'external', 'action'].includes(item.type) ? item.type : 'internal',
+            target: typeof item.target === 'string' ? item.target.trim() : '',
+            icon: typeof item.icon === 'string' ? item.icon.trim() : null,
+            order: normalizeOrder(item.order),
+          }))
+          .filter((item) => item.target)
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+        if (activeItems.length > 0) {
+          setMenuItems(activeItems);
+          resolved = true;
+        }
+      }
+    } catch (error) {
+      console.error('Error loading menu items:', error);
+    } finally {
+      if (!resolved) {
+        setMenuItems(DEFAULT_MENU_ITEMS);
+      }
+      setMenuLoading(false);
+    }
   }, []);
 
-  const loadSocialLinks = async () => {
+  const loadSocialLinks = useCallback(async () => {
+    setSocialLoading(true);
     try {
-      setLoading(true);
-      // Use the public endpoint for active social links
       const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.SOCIAL_LINKS}/active`);
       const data = await response.json();
-      if (data.success && data.data) {
-        // Sort by order
-        const sortedLinks = data.data.sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+      if (data.success && Array.isArray(data.data)) {
+        const sortedLinks = [...data.data].sort(
+          (a: any, b: any) => normalizeOrder(a.order) - normalizeOrder(b.order)
+        );
         setSocialLinks(sortedLinks);
+      } else {
+        setSocialLinks([]);
       }
     } catch (error) {
       console.error('Error loading social links:', error);
+      setSocialLinks([]);
     } finally {
-      setLoading(false);
+      setSocialLoading(false);
     }
-  };
+  }, []);
 
-  const handleSocialLink = async (url: string) => {
+  useEffect(() => {
+    loadMenuItems();
+    loadSocialLinks();
+  }, [loadMenuItems, loadSocialLinks]);
+
+  const handleSocialLink = useCallback(async (url: string) => {
+    if (!url) {
+      return;
+    }
     try {
       const canOpen = await Linking.canOpenURL(url);
       if (canOpen) {
         await Linking.openURL(url);
       } else {
-        console.error('Cannot open URL:', url);
+        Alert.alert('Unable to open link', 'Please try again later.');
       }
     } catch (error) {
       console.error('Error opening URL:', error);
+      Alert.alert('Unable to open link', 'Please try again later.');
     }
-  };
+  }, []);
 
-  const getIconName = (platform: string): any => {
-    const iconMap: { [key: string]: any } = {
+  const { navigation, state } = props;
+  const routeNames = state?.routeNames ?? [];
+  const activeRouteName = routeNames[state.index] ?? 'index';
+  const borderColor = isDark ? COLORS.BORDER_DARK : COLORS.BORDER;
+  const textColor = isDark ? COLORS.TEXT_DARK : COLORS.TEXT;
+  const subtitleColor = isDark ? 'rgba(255,255,255,0.7)' : COLORS.TEXT_SECONDARY;
+
+  const handleMenuItemPress = useCallback(
+    async (item: MenuItem) => {
+      const target = typeof item.target === 'string' ? item.target.trim() : '';
+      if (!target) {
+        return;
+      }
+
+      navigation.closeDrawer();
+
+      if (item.type === 'internal') {
+        if (routeNames.includes(target)) {
+          navigation.navigate(target as never);
+        } else {
+          Alert.alert('Screen unavailable', 'This screen is not available yet.');
+        }
+        return;
+      }
+
+      if (item.type === 'external') {
+        await handleSocialLink(target);
+        return;
+      }
+
+      if (item.type === 'action') {
+        if (target === RATE_APP_ACTION) {
+          Alert.alert('Rate App', 'Rate functionality will be implemented soon.');
+        } else {
+          Alert.alert('Action unavailable', 'This action is not available yet.');
+        }
+      }
+    },
+    [handleSocialLink, navigation, routeNames]
+  );
+
+  const getSocialIconName = (platform: string): string => {
+    const iconMap: Record<string, string> = {
       facebook: 'logo-facebook',
       twitter: 'logo-twitter',
       instagram: 'logo-instagram',
@@ -143,81 +274,90 @@ function CustomDrawerContent(props: any) {
       linkedin: 'logo-linkedin',
       website: 'globe',
     };
-    return iconMap[platform.toLowerCase()] || 'link';
+    return iconMap[platform.toLowerCase()] ?? 'link';
   };
 
   return (
-    <View style={[styles.drawerContainer, { backgroundColor: isDark ? COLORS.BACKGROUND_DARK : COLORS.BACKGROUND }]}>
+    <View
+      style={[styles.drawerContainer, { backgroundColor: isDark ? COLORS.BACKGROUND_DARK : COLORS.BACKGROUND }]}
+    >
       {/* Header */}
       <View style={styles.drawerHeader}>
-        <Text style={[styles.appTitle, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>
-          {APP_CONFIG.NAME}
-        </Text>
-        <Text style={[styles.appVersion, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT, opacity: 0.7 }]}>
-          Version 1.0.0
+        <Text style={[styles.appTitle, { color: textColor }]}>{APP_CONFIG.NAME}</Text>
+        <Text style={[styles.appVersion, { color: textColor, opacity: 0.7 }]}>
+          {`Version ${APP_CONFIG.VERSION}`}
         </Text>
       </View>
 
       {/* Navigation Items */}
       <View style={styles.navigationSection}>
-        <TouchableOpacity
-          style={[styles.navItem, { borderBottomColor: isDark ? COLORS.BORDER_DARK : COLORS.BORDER }]}
-          onPress={() => props.navigation.navigate('index')}
-        >
-          <Ionicons name="home" size={24} color={COLORS.PRIMARY} />
-          <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>Home</Text>
-        </TouchableOpacity>
+        {menuLoading && (
+          <ActivityIndicator size="small" color={COLORS.PRIMARY} style={styles.menuLoadingIndicator} />
+        )}
+        {menuItems.length === 0 ? (
+          <Text style={[styles.noMenuItemsText, { color: subtitleColor }]}>No menu items available</Text>
+        ) : (
+          menuItems.map((item) => {
+            const iconName =
+              typeof item.icon === 'string' && item.icon.length > 0 ? item.icon : 'menu';
+            const subtitle =
+              typeof item.subtitle === 'string' && item.subtitle.length > 0 ? item.subtitle : null;
+            const isInternal = item.type === 'internal';
+            const routeExists = isInternal ? routeNames.includes(item.target) : false;
+            const isDisabled = isInternal && !routeExists;
+            const isActive = isInternal && activeRouteName === item.target;
 
-        <TouchableOpacity
-          style={[styles.navItem, { borderBottomColor: isDark ? COLORS.BORDER_DARK : COLORS.BORDER }]}
-          onPress={() => props.navigation.navigate('sleep-timer')}
-        >
-          <Ionicons name="moon" size={24} color={COLORS.PRIMARY} />
-          <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>Sleep Timer</Text>
-        </TouchableOpacity>
+            const itemStyles = [
+              styles.navItem,
+              { borderBottomColor: borderColor },
+              isActive && {
+                backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+                borderBottomWidth: 0,
+                borderRadius: 8,
+                paddingHorizontal: 10,
+              },
+            ];
 
-        <TouchableOpacity
-          style={[styles.navItem, { borderBottomColor: isDark ? COLORS.BORDER_DARK : COLORS.BORDER }]}
-          onPress={() => props.navigation.navigate('settings')}
-        >
-          <Ionicons name="settings" size={24} color={COLORS.PRIMARY} />
-          <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>Settings</Text>
-        </TouchableOpacity>
+            if (isDisabled) {
+              itemStyles.push(styles.navItemDisabled);
+            }
 
-        <TouchableOpacity
-          style={[styles.navItem, { borderBottomColor: isDark ? COLORS.BORDER_DARK : COLORS.BORDER }]}
-          onPress={() => props.navigation.navigate('privacy')}
-        >
-          <Ionicons name="lock-closed" size={24} color={COLORS.PRIMARY} />
-          <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>Privacy Policy</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, { borderBottomColor: isDark ? COLORS.BORDER_DARK : COLORS.BORDER }]}
-          onPress={() => props.navigation.navigate('about')}
-        >
-          <Ionicons name="information-circle" size={24} color={COLORS.PRIMARY} />
-          <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>About</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.navItem, { borderBottomColor: isDark ? COLORS.BORDER_DARK : COLORS.BORDER }]}
-          onPress={() => {
-            // Rate app functionality
-            Alert.alert('Rate App', 'Rate functionality will be implemented soon.');
-          }}
-        >
-          <Ionicons name="star" size={24} color={COLORS.PRIMARY} />
-          <Text style={[styles.navText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>Rate App</Text>
-        </TouchableOpacity>
+            return (
+              <TouchableOpacity
+                key={item.id}
+                style={itemStyles}
+                onPress={() => handleMenuItemPress(item)}
+                disabled={isDisabled}
+              >
+                <Ionicons
+                  name={iconName as any}
+                  size={24}
+                  color={isDisabled ? (isDark ? COLORS.BORDER_DARK : COLORS.BORDER) : COLORS.PRIMARY}
+                />
+                <View style={styles.navTextContainer}>
+                  <Text
+                    style={[
+                      styles.navText,
+                      { color: textColor },
+                      isActive && styles.navTextActive,
+                    ]}
+                  >
+                    {item.title}
+                  </Text>
+                  {subtitle ? (
+                    <Text style={[styles.navSubtitle, { color: subtitleColor }]}>{subtitle}</Text>
+                  ) : null}
+                </View>
+              </TouchableOpacity>
+            );
+          })
+        )}
       </View>
 
       {/* Social Links Section */}
       <View style={styles.socialSection}>
-        <Text style={[styles.sectionTitle, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT }]}>
-          Follow Us
-        </Text>
-        {loading ? (
+        <Text style={[styles.sectionTitle, { color: textColor }]}>Follow Us</Text>
+        {socialLoading ? (
           <ActivityIndicator size="small" color={COLORS.PRIMARY} style={{ marginTop: 10 }} />
         ) : socialLinks.length > 0 ? (
           <View style={styles.socialLinks}>
@@ -227,14 +367,12 @@ function CustomDrawerContent(props: any) {
                 style={styles.socialLink}
                 onPress={() => handleSocialLink(link.url)}
               >
-                <Ionicons name={getIconName(link.platform)} size={24} color={COLORS.PRIMARY} />
+                <Ionicons name={getSocialIconName(link.platform) as any} size={24} color={COLORS.PRIMARY} />
               </TouchableOpacity>
             ))}
           </View>
         ) : (
-          <Text style={[styles.noLinksText, { color: isDark ? COLORS.TEXT_DARK : COLORS.TEXT, opacity: 0.6 }]}>
-            No social links available
-          </Text>
+          <Text style={[styles.noLinksText, { color: subtitleColor }]}>No social links available</Text>
         )}
       </View>
     </View>
@@ -268,9 +406,30 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderBottomWidth: 1,
   },
+  navItemDisabled: {
+    opacity: 0.6,
+  },
+  navTextContainer: {
+    flex: 1,
+    marginLeft: 15,
+  },
   navText: {
     fontSize: 16,
-    marginLeft: 15,
+  },
+  navTextActive: {
+    fontWeight: '700',
+  },
+  navSubtitle: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  menuLoadingIndicator: {
+    marginBottom: 10,
+  },
+  noMenuItemsText: {
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
   },
   socialSection: {
     marginTop: 'auto',

@@ -1,6 +1,6 @@
 import dotenv from 'dotenv';
 import { db } from '../drizzle/db.js';
-import { users, socialLinks, adBanners } from '../drizzle/schema.js';
+import { users, socialLinks, adBanners, menuItems } from '../drizzle/schema.js';
 import bcrypt from 'bcryptjs';
 
 // Load environment variables
@@ -70,6 +70,60 @@ async function seedDatabase() {
       console.log('✅ Social links seeded successfully!');
     } else {
       console.log('✅ Social links already exist, skipping seeding');
+    }
+
+    // Seed menu items if none exist
+    const existingMenuItems = await db.query.menuItems.findMany();
+    if (existingMenuItems.length === 0) {
+      const menuItemsData = [
+        {
+          title: 'Home',
+          type: 'internal',
+          target: 'index',
+          icon: 'home',
+          order: 0
+        },
+        {
+          title: 'About',
+          type: 'internal',
+          target: 'about',
+          icon: 'information-circle',
+          order: 1
+        },
+        {
+          title: 'Privacy Policy',
+          type: 'internal',
+          target: 'privacy',
+          icon: 'lock-closed',
+          order: 2
+        },
+        {
+          title: 'Settings',
+          type: 'internal',
+          target: 'settings',
+          icon: 'settings',
+          order: 3
+        },
+        {
+          title: 'Sleep Timer',
+          type: 'internal',
+          target: 'sleep-timer',
+          icon: 'moon',
+          order: 4
+        },
+        {
+          title: 'Rate App',
+          type: 'action',
+          target: 'rate_app',
+          icon: 'star',
+          order: 5
+        }
+      ];
+
+      await db.insert(menuItems).values(menuItemsData);
+      console.log('✅ Menu items seeded successfully!');
+    } else {
+      console.log('✅ Menu items already exist, skipping seeding');
     }
 
     // Note: Stream metadata is now managed by RadioKing API

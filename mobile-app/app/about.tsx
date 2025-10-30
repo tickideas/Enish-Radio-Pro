@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   Linking,
   TouchableOpacity,
 } from 'react-native';
@@ -14,10 +13,6 @@ import { COLORS, APP_CONFIG } from '@/constants/radio';
 export default function AboutScreen() {
   const handleVisitWebsite = () => {
     Linking.openURL(APP_CONFIG.WEBSITE);
-  };
-
-  const handleContactSupport = () => {
-    Linking.openURL(`mailto:${APP_CONFIG.SUPPORT_EMAIL}`);
   };
 
   const handleRateApp = () => {
@@ -34,16 +29,7 @@ export default function AboutScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* App Logo and Header */}
-        <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <Ionicons name="radio" size={80} color={COLORS.PRIMARY} />
-          </View>
-          <Text style={styles.appName}>{APP_CONFIG.NAME}</Text>
-          <Text style={styles.version}>Version {APP_CONFIG.VERSION}</Text>
-          <Text style={styles.tagline}>Your Premium Radio Experience</Text>
-        </View>
-
+      
         {/* About Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About {APP_CONFIG.NAME}</Text>
@@ -85,31 +71,6 @@ export default function AboutScreen() {
           </View>
         </View>
 
-        {/* Technical Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Technical Information</Text>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Platform:</Text>
-            <Text style={styles.infoValue}>iOS & Android</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Framework:</Text>
-            <Text style={styles.infoValue}>React Native & Expo</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Audio Quality:</Text>
-            <Text style={styles.infoValue}>High Quality (320 kbps)</Text>
-          </View>
-          
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Stream Type:</Text>
-            <Text style={styles.infoValue}>MP3 & M3U Support</Text>
-          </View>
-        </View>
-
         {/* Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Get Involved</Text>
@@ -147,25 +108,13 @@ export default function AboutScreen() {
             <Ionicons name="chevron-forward" size={20} color={COLORS.TEXT} opacity={0.5} />
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.actionButton} onPress={handleContactSupport}>
-            <Ionicons name="mail" size={24} color={COLORS.PRIMARY} />
-            <View style={styles.actionContent}>
-              <Text style={styles.actionTitle}>Contact Support</Text>
-              <Text style={styles.actionDescription}>
-                Get help with any issues or questions
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color={COLORS.TEXT} opacity={0.5} />
-          </TouchableOpacity>
+         
         </View>
 
         {/* Copyright */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            © 2024 {APP_CONFIG.NAME}. All rights reserved.
-          </Text>
-          <Text style={styles.footerText}>
-            Made with ❤️ for music lovers everywhere
+            © 2025 {APP_CONFIG.NAME}. All rights reserved.
           </Text>
         </View>
       </ScrollView>

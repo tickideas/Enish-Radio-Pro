@@ -62,6 +62,15 @@ async function createSchema() {
       END $$;
     `);
 
+    // Create menu_item_type enum if it doesn't exist
+    await db.execute(`
+      DO $$ BEGIN
+        CREATE TYPE menu_item_type AS ENUM ('internal', 'external', 'action');
+      EXCEPTION
+        WHEN duplicate_object THEN null;
+      END $$;
+    `);
+
     // Create users table
     await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
@@ -106,6 +115,22 @@ async function createSchema() {
         click_count INTEGER NOT NULL DEFAULT 0,
         impression_count INTEGER NOT NULL DEFAULT 0,
         priority INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+      )
+    `);
+
+    // Create menu_items table
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS menu_items (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        title VARCHAR(150) NOT NULL,
+        subtitle VARCHAR(255),
+        type menu_item_type NOT NULL DEFAULT 'internal',
+        target VARCHAR(500) NOT NULL,
+        icon VARCHAR(50) NOT NULL DEFAULT 'menu',
+        is_active BOOLEAN NOT NULL DEFAULT true,
+        "order" INTEGER NOT NULL DEFAULT 0,
         created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
         updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
       )

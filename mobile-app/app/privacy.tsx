@@ -21,7 +21,7 @@ export default function PrivacyScreen() {
         <View style={styles.header}>
           <Ionicons name="lock-closed" size={40} color={COLORS.PRIMARY} />
           <Text style={styles.title}>Privacy Policy</Text>
-          <Text style={styles.subtitle}>Last updated: October 2024</Text>
+          <Text style={styles.subtitle}>Last updated: October 2025</Text>
         </View>
 
         {/* Introduction */}
@@ -158,7 +158,7 @@ export default function PrivacyScreen() {
         {/* Footer */}
         <View style={styles.footer}>
           <Text style={styles.footerText}>
-            This Privacy Policy is effective as of October 2024 and will remain in effect except with respect to any changes in its provisions in the future.
+            This Privacy Policy is effective as of October 2025 and will remain in effect except with respect to any changes in its provisions in the future.
           </Text>
         </View>
       </ScrollView>

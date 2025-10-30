@@ -14,6 +14,7 @@ import db, { pool, testConnection, syncSchema } from './drizzle/db.js'
 import UserModel from './drizzle/models/User.js'
 import SocialLinkModel from './drizzle/models/SocialLink.js'
 import AdBannerModel from './drizzle/models/AdBanner.js'
+import MenuItemModel from './drizzle/models/MenuItem.js'
 
 // Load env
 dotenv.config()
@@ -114,6 +115,8 @@ const requireAdmin = () => async (c, next) => {
   c.set('user', user)
   await next()
 }
+
+const MENU_ITEM_TYPES = ['internal', 'external', 'action']
 
 // Static files
 // Serve everything in /public at its path, and specifically map /admin and /admin/*
@@ -464,6 +467,138 @@ app.delete('/api/social-links/:id', requireAdmin(), async (c) => {
   }
 })
 
+// ===== Menu Items =====
+app.get('/api/menu-items', async (c) => {
+  try {
+    const items = await MenuItemModel.getActive()
+    return c.json({ success: true, data: items, count: items.length })
+  } catch (error) {
+    console.error('Error fetching menu items:', error)
+    return c.json({ success: false, error: 'Failed to fetch menu items' }, 500)
+  }
+})
+
+app.get('/api/menu-items/admin', requireAdmin(), async (c) => {
+  try {
+    const items = await MenuItemModel.getAll()
+    return c.json({ success: true, data: items, count: items.length })
+  } catch (error) {
+    console.error('Error fetching menu items for admin:', error)
+    return c.json({ success: false, error: 'Failed to fetch menu items for admin dashboard' }, 500)
+  }
+})
+
+app.get('/api/menu-items/:id', requireAdmin(), async (c) => {
+  try {
+    const { id } = c.req.param()
+    const menuItem = await MenuItemModel.findById(id)
+    if (!menuItem) return c.json({ success: false, error: 'Menu item not found' }, 404)
+    return c.json({ success: true, data: menuItem })
+  } catch (error) {
+    console.error('Error fetching menu item:', error)
+    return c.json({ success: false, error: 'Failed to fetch menu item' }, 500)
+  }
+})
+
+app.post('/api/menu-items', requireAdmin(), async (c) => {
+  try {
+    const { title, subtitle, type = 'internal', target, icon = 'menu', isActive = true, order = 0 } = await json(c)
+    if (!title || !target) {
+      return c.json({ success: false, error: 'Missing required fields: title, target' }, 400)
+    }
+    if (!MENU_ITEM_TYPES.includes(type)) {
+      return c.json({ success: false, error: `Invalid type. Expected one of: ${MENU_ITEM_TYPES.join(', ')}` }, 400)
+    }
+
+    const cleanPayload = {
+      title: typeof title === 'string' ? title.trim() : title,
+      subtitle: typeof subtitle === 'string' && subtitle.trim().length > 0 ? subtitle.trim() : null,
+      type,
+      target: typeof target === 'string' ? target.trim() : target,
+      icon: typeof icon === 'string' && icon.trim().length > 0 ? icon.trim() : 'menu',
+      isActive: isActive !== false,
+      order: Number.isFinite(order) ? order : parseInt(order, 10) || 0
+    }
+
+    const created = await MenuItemModel.create(cleanPayload)
+    return c.json({ success: true, data: created, message: 'Menu item created successfully' }, 201)
+  } catch (error) {
+    console.error('Error creating menu item:', error)
+    return c.json({ success: false, error: 'Failed to create menu item' }, 500)
+  }
+})
+
+app.put('/api/menu-items/:id', requireAdmin(), async (c) => {
+  try {
+    const { id } = c.req.param()
+    const existing = await MenuItemModel.findById(id)
+    if (!existing) return c.json({ success: false, error: 'Menu item not found' }, 404)
+
+    const { title, subtitle, type, target, icon, isActive, order } = await json(c)
+    const updateData = {}
+    if (title !== undefined) updateData.title = typeof title === 'string' ? title.trim() : title
+    if (subtitle !== undefined) {
+      updateData.subtitle = typeof subtitle === 'string' && subtitle.trim().length > 0 ? subtitle.trim() : null
+    }
+    if (type !== undefined) {
+      if (!MENU_ITEM_TYPES.includes(type)) {
+        return c.json({ success: false, error: `Invalid type. Expected one of: ${MENU_ITEM_TYPES.join(', ')}` }, 400)
+      }
+      updateData.type = type
+    }
+    if (target !== undefined) updateData.target = typeof target === 'string' ? target.trim() : target
+    if (icon !== undefined) {
+      updateData.icon = typeof icon === 'string' && icon.trim().length > 0 ? icon.trim() : 'menu'
+    }
+    if (isActive !== undefined) updateData.isActive = !!isActive
+    if (order !== undefined) updateData.order = Number.isFinite(order) ? order : parseInt(order, 10) || 0
+
+    if (Object.keys(updateData).length === 0) {
+      return c.json({ success: false, error: 'No valid fields provided for update' }, 400)
+    }
+
+    const updated = await MenuItemModel.update(id, updateData)
+    return c.json({ success: true, data: updated, message: 'Menu item updated successfully' })
+  } catch (error) {
+    console.error('Error updating menu item:', error)
+    return c.json({ success: false, error: 'Failed to update menu item' }, 500)
+  }
+})
+
+app.put('/api/menu-items/order', requireAdmin(), async (c) => {
+  try {
+    const { items } = await json(c)
+    if (!Array.isArray(items) || items.length === 0) {
+      return c.json({ success: false, error: 'Items array is required' }, 400)
+    }
+
+    for (const item of items) {
+      if (!item.id || typeof item.order !== 'number') {
+        return c.json({ success: false, error: 'Each item must include id and order' }, 400)
+      }
+    }
+
+    await MenuItemModel.updateOrder(items)
+    return c.json({ success: true, message: 'Menu item order updated successfully' })
+  } catch (error) {
+    console.error('Error updating menu item order:', error)
+    return c.json({ success: false, error: 'Failed to update menu item order' }, 500)
+  }
+})
+
+app.delete('/api/menu-items/:id', requireAdmin(), async (c) => {
+  try {
+    const { id } = c.req.param()
+    const existing = await MenuItemModel.findById(id)
+    if (!existing) return c.json({ success: false, error: 'Menu item not found' }, 404)
+    await MenuItemModel.delete(id)
+    return c.json({ success: true, message: 'Menu item deleted successfully' })
+  } catch (error) {
+    console.error('Error deleting menu item:', error)
+    return c.json({ success: false, error: 'Failed to delete menu item' }, 500)
+  }
+})
+
 // ===== Ad Banners =====
 app.get('/api/ads', async (c) => {
   try {
@@ -705,6 +840,9 @@ app.get('/api/analytics/overview', requireAdmin(), async (c) => {
     const totalSocialLinks = await SocialLinkModel.getAll()
     const activeSocialLinks = totalSocialLinks.filter((l) => l.isActive)
 
+    const totalMenuItems = await MenuItemModel.getAll()
+    const activeMenuItems = totalMenuItems.filter((item) => item.isActive)
+
     const totalAds = await AdBannerModel.getAll()
     const activeAds = totalAds.filter((a) => a.isActive)
     const totalClicks = totalAds.reduce((sum, a) => sum + a.clickCount, 0)
@@ -716,6 +854,7 @@ app.get('/api/analytics/overview', requireAdmin(), async (c) => {
       success: true,
       data: {
         socialLinks: { total: totalSocialLinks.length, active: activeSocialLinks.length },
+        menuItems: { total: totalMenuItems.length, active: activeMenuItems.length },
         ads: { total: totalAds.length, active: activeAds.length, totalClicks, weeklyClicks, monthlyClicks },
         generatedAt: new Date().toISOString(),
       },

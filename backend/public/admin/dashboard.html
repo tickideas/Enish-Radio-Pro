@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Enish Radio Pro - Admin Dashboard</title>
+    <!-- Version: 2.0 - Menu Items Support Added -->
     <style>
         * {
             margin: 0;
@@ -225,6 +229,7 @@
         <div class="nav-tabs">
             <button class="nav-tab active" onclick="showTab('dashboard', event)">Dashboard</button>
             <button class="nav-tab" onclick="showTab('social-links', event)">Social Links</button>
+            <button class="nav-tab" onclick="showTab('menu-items', event)">Menu Items</button>
             <button class="nav-tab" onclick="showTab('ad-banners', event)">Ad Banners</button>
             <!-- Stream Metadata is now managed by RadioKing API -->
             <button class="nav-tab" onclick="showTab('user-management', event)">User Management</button>
@@ -238,6 +243,10 @@
                 <div class="stat-card">
                     <div class="stat-number" id="totalSocialLinks">-</div>
                     <div class="stat-label">Social Links</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number" id="totalMenuItems">-</div>
+                    <div class="stat-label">Menu Items</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="totalAdBanners">-</div>
@@ -255,6 +264,14 @@
             <h2>Social Links Management</h2>
             <div id="socialLinksContent">
                 <div class="loading">Loading social links...</div>
+            </div>
+        </div>
+
+        <!-- Menu Items Tab -->
+        <div id="menu-items" class="tab-content">
+            <h2>Menu Items Management</h2>
+            <div id="menuItemsContent">
+                <div class="loading">Loading menu items...</div>
             </div>
         </div>
         
@@ -298,6 +315,19 @@
                         <div class="stat">
                             <span class="stat-number" id="analytics-social-active">-</span>
                             <span class="stat-label">Active Links</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="analytics-card">
+                    <h3>Menu Items</h3>
+                    <div class="analytics-stats">
+                        <div class="stat">
+                            <span class="stat-number" id="analytics-menu-total">-</span>
+                            <span class="stat-label">Total Items</span>
+                        </div>
+                        <div class="stat">
+                            <span class="stat-number" id="analytics-menu-active">-</span>
+                            <span class="stat-label">Active Items</span>
                         </div>
                     </div>
                 </div>
@@ -381,6 +411,9 @@
                 case 'social-links':
                     await loadSocialLinks();
                     break;
+                case 'menu-items':
+                    await loadMenuItems();
+                    break;
                 case 'ad-banners':
                     await loadAdBanners();
                     break;
@@ -432,6 +465,10 @@
                 // Load social links count
                 const socialLinks = await apiCall('/social-links/admin');
                 document.getElementById('totalSocialLinks').textContent = socialLinks.data?.length || 0;
+
+                // Load menu items count
+                const menuItems = await apiCall('/menu-items/admin');
+                document.getElementById('totalMenuItems').textContent = menuItems.data?.length || 0;
                 
                 // Load ad banners count
                 const adBanners = await apiCall('/ads/admin');
@@ -453,6 +490,10 @@
                 const response = await apiCall('/social-links/admin');
                 const socialLinks = response.data || [];
                 const content = document.getElementById('socialLinksContent');
+                const totalSocialLinksEl = document.getElementById('totalSocialLinks');
+                if (totalSocialLinksEl) {
+                    totalSocialLinksEl.textContent = socialLinks.length;
+                }
                 
                 if (socialLinks.length === 0) {
                     content.innerHTML = '<p>No social links found.</p><button class="btn" onclick="openAddSocialLinkModal()">Add Social Link</button>';
@@ -500,6 +541,66 @@
             } catch (error) {
                 document.getElementById('socialLinksContent').innerHTML = '<p class="message error">Error loading social links.</p>';
                 showNotification('Error loading social links', 'error');
+            }
+        }
+
+        async function loadMenuItems() {
+            try {
+                const response = await apiCall('/menu-items/admin');
+                const menuItems = response.data || [];
+                const content = document.getElementById('menuItemsContent');
+
+                if (menuItems.length === 0) {
+                    content.innerHTML = '<p>No menu items found.</p><button class="btn" onclick="openAddMenuItemModal()">Add Menu Item</button>';
+                    return;
+                }
+
+                let html = `
+                    <div style="margin-bottom: 20px;">
+                        <button class="btn" onclick="openAddMenuItemModal()">Add Menu Item</button>
+                    </div>
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Type</th>
+                                <th>Target</th>
+                                <th>Status</th>
+                                <th>Order</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                menuItems.forEach(item => {
+                    html += `
+                        <tr>
+                            <td>
+                                <strong>${escapeHtml(item.title)}</strong>
+                                ${item.subtitle ? `<div style="color:#666;font-size:12px;">${escapeHtml(item.subtitle)}</div>` : ''}
+                            </td>
+                            <td>${escapeHtml(item.type)}</td>
+                            <td><span style="font-size:12px;word-break:break-word;">${escapeHtml(item.target)}</span></td>
+                            <td>
+                                <span class="status ${item.isActive ? 'active' : 'inactive'}">
+                                    ${item.isActive ? 'Active' : 'Inactive'}
+                                </span>
+                            </td>
+                            <td>${item.order}</td>
+                            <td>
+                                <button class="btn btn-sm" onclick="openEditMenuItemModal('${item.id}')">Edit</button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteMenuItem('${item.id}', '${item.title.replace(/'/g, "\\'")}')">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            } catch (error) {
+                document.getElementById('menuItemsContent').innerHTML = '<p class="message error">Error loading menu items.</p>';
+                showNotification('Error loading menu items', 'error');
             }
         }
         
@@ -683,6 +784,18 @@
             const remainingSeconds = seconds % 60;
             return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
         }
+
+        function escapeHtml(value) {
+            if (value === null || value === undefined) {
+                return '';
+            }
+            return String(value)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
         
         // Modal functions
         function openModal(title, content) {
@@ -731,9 +844,208 @@
             openModal('Add Social Link', content);
         }
         
-        function openEditSocialLinkModal(id) {
-            // This would fetch the specific social link and populate the form
-            showNotification('Edit functionality coming soon', 'info');
+        async function openEditSocialLinkModal(id) {
+            try {
+                const response = await apiCall(`/social-links/${id}`);
+                const link = response.data;
+
+                if (!link) {
+                    showNotification('Social link not found', 'error');
+                    return;
+                }
+
+                const content = `
+                    <form onsubmit="updateSocialLink(event, '${id}')">
+                        <div class="form-group">
+                            <label>Platform:</label>
+                            <input type="text" id="editPlatform" value="${escapeHtml(link.platform || '')}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Display Name:</label>
+                            <input type="text" id="editDisplayName" value="${escapeHtml(link.displayName || '')}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>URL:</label>
+                            <input type="url" id="editUrl" value="${escapeHtml(link.url || '')}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Icon (FontAwesome class):</label>
+                            <input type="text" id="editIcon" value="${escapeHtml(link.icon || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label>Status:</label>
+                            <select id="editIsActive">
+                                <option value="true" ${link.isActive ? 'selected' : ''}>Active</option>
+                                <option value="false" ${!link.isActive ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn">Update Social Link</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        </div>
+                    </form>
+                `;
+
+                openModal('Edit Social Link', content);
+            } catch (error) {
+                console.error('Error loading social link for edit:', error);
+                showNotification(error.message || 'Error loading social link', 'error');
+            }
+        }
+
+        // Menu Item Modals
+        function openAddMenuItemModal() {
+            const content = `
+                <form onsubmit="addMenuItem(event)">
+                    <div class="form-group">
+                        <label>Title:</label>
+                        <input type="text" id="menuTitle" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Subtitle (optional):</label>
+                        <input type="text" id="menuSubtitle">
+                    </div>
+                    <div class="form-group">
+                        <label>Type:</label>
+                        <select id="menuType">
+                            <option value="internal">Internal Screen</option>
+                            <option value="external">External Link</option>
+                            <option value="action">Custom Action</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Target:</label>
+                        <input type="text" id="menuTarget" placeholder="Internal: index • External: https://example.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Icon (Ionicons name):</label>
+                        <input type="text" id="menuIcon" placeholder="home">
+                    </div>
+                    <div class="form-group">
+                        <label>Order:</label>
+                        <input type="number" id="menuOrder" value="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>Status:</label>
+                        <select id="menuIsActive">
+                            <option value="true">Active</option>
+                            <option value="false">Inactive</option>
+                        </select>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn">Add Menu Item</button>
+                        <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    </div>
+                </form>
+            `;
+            openModal('Add Menu Item', content);
+        }
+
+        async function openEditMenuItemModal(id) {
+            try {
+                const response = await apiCall(`/menu-items/${id}`);
+                const item = response.data;
+                if (!item) {
+                    showNotification('Menu item not found', 'error');
+                    return;
+                }
+
+                const content = `
+                    <form onsubmit="updateMenuItem(event, '${id}')">
+                        <div class="form-group">
+                            <label>Title:</label>
+                            <input type="text" id="menuTitle" value="${escapeHtml(item.title)}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Subtitle (optional):</label>
+                            <input type="text" id="menuSubtitle" value="${escapeHtml(item.subtitle || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label>Type:</label>
+                            <select id="menuType">
+                                <option value="internal" ${item.type === 'internal' ? 'selected' : ''}>Internal Screen</option>
+                                <option value="external" ${item.type === 'external' ? 'selected' : ''}>External Link</option>
+                                <option value="action" ${item.type === 'action' ? 'selected' : ''}>Custom Action</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Target:</label>
+                            <input type="text" id="menuTarget" value="${escapeHtml(item.target)}" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Icon (Ionicons name):</label>
+                            <input type="text" id="menuIcon" value="${escapeHtml(item.icon || '')}">
+                        </div>
+                        <div class="form-group">
+                            <label>Order:</label>
+                            <input type="number" id="menuOrder" value="${item.order || 0}" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>Status:</label>
+                            <select id="menuIsActive">
+                                <option value="true" ${item.isActive ? 'selected' : ''}>Active</option>
+                                <option value="false" ${!item.isActive ? 'selected' : ''}>Inactive</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn">Update Menu Item</button>
+                            <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        </div>
+                    </form>
+                `;
+                openModal('Edit Menu Item', content);
+            } catch (error) {
+                console.error('Error loading menu item', error);
+                showNotification('Error loading menu item', 'error');
+            }
+        }
+
+        function getMenuFormData() {
+            const title = document.getElementById('menuTitle').value.trim();
+            const subtitleValue = document.getElementById('menuSubtitle').value.trim();
+            const type = document.getElementById('menuType').value;
+            const target = document.getElementById('menuTarget').value.trim();
+            const iconValue = document.getElementById('menuIcon').value.trim();
+            const orderValue = parseInt(document.getElementById('menuOrder').value, 10);
+            const isActive = document.getElementById('menuIsActive').value === 'true';
+
+            return {
+                title,
+                subtitle: subtitleValue || null,
+                type,
+                target,
+                icon: iconValue,
+                order: Number.isNaN(orderValue) ? 0 : orderValue,
+                isActive
+            };
+        }
+
+        async function addMenuItem(event) {
+            event.preventDefault();
+            try {
+                const payload = getMenuFormData();
+                await apiCall('/menu-items', 'POST', payload);
+                closeModal();
+                showNotification('Menu item added successfully', 'success');
+                loadMenuItems();
+            } catch (error) {
+                console.error('Error adding menu item', error);
+                showNotification('Error adding menu item', 'error');
+            }
+        }
+
+        async function updateMenuItem(event, id) {
+            event.preventDefault();
+            try {
+                const payload = getMenuFormData();
+                await apiCall(`/menu-items/${id}`, 'PUT', payload);
+                closeModal();
+                showNotification('Menu item updated successfully', 'success');
+                loadMenuItems();
+            } catch (error) {
+                console.error('Error updating menu item', error);
+                showNotification('Error updating menu item', 'error');
+            }
         }
         
         // Ad Banner Modals
@@ -832,6 +1144,7 @@
         // function openEditStreamMetadataModal(id) {
         //     showNotification('Edit functionality coming soon', 'info');
         // }
+        */
         
         // CRUD Operations
         async function addSocialLink(event) {
@@ -849,8 +1162,31 @@
                 closeModal();
                 showNotification('Social link added successfully', 'success');
                 loadSocialLinks();
+                loadDashboardStats();
             } catch (error) {
-                showNotification('Error adding social link', 'error');
+                showNotification(error.message || 'Error adding social link', 'error');
+            }
+        }
+
+        async function updateSocialLink(event, id) {
+            event.preventDefault();
+            try {
+                const data = {
+                    platform: document.getElementById('editPlatform').value,
+                    displayName: document.getElementById('editDisplayName').value,
+                    url: document.getElementById('editUrl').value,
+                    icon: document.getElementById('editIcon').value,
+                    isActive: document.getElementById('editIsActive').value === 'true'
+                };
+
+                await apiCall(`/social-links/${id}`, 'PUT', data);
+                closeModal();
+                showNotification('Social link updated successfully', 'success');
+                loadSocialLinks();
+                loadDashboardStats();
+            } catch (error) {
+                console.error('Error updating social link:', error);
+                showNotification(error.message || 'Error updating social link', 'error');
             }
         }
         
@@ -904,11 +1240,33 @@
                     await apiCall(`/social-links/${id}`, 'DELETE');
                     showNotification('Social link deleted successfully', 'success');
                     loadSocialLinks();
+                    loadDashboardStats();
                 } catch (error) {
-                    showNotification('Error deleting social link', 'error');
+                    console.error('Error deleting social link:', error);
+                    showNotification(error.message || 'Error deleting social link', 'error');
                 }
             }
         }
+
+        async function deleteMenuItem(id, title) {
+            if (confirm(`Are you sure you want to delete the "${title}" menu item?`)) {
+                try {
+                    await apiCall(`/menu-items/${id}`, 'DELETE');
+                    showNotification('Menu item deleted successfully', 'success');
+                    loadMenuItems();
+                } catch (error) {
+                    showNotification('Error deleting menu item', 'error');
+                }
+            }
+        }
+        
+        // Make functions globally accessible for inline onclick handlers
+        window.deleteSocialLink = deleteSocialLink;
+        window.openAddSocialLinkModal = openAddSocialLinkModal;
+        window.openEditSocialLinkModal = openEditSocialLinkModal;
+        window.deleteMenuItem = deleteMenuItem;
+        window.openAddMenuItemModal = openAddMenuItemModal;
+        window.openEditMenuItemModal = openEditMenuItemModal;
         
         async function deleteAdBanner(id, title) {
             if (confirm(`Are you sure you want to delete the "${title}" ad banner?`)) {
@@ -933,7 +1291,6 @@
                 }
             }
         }
-        */
         
         async function deleteUser(id, email) {
             if (confirm(`Are you sure you want to delete user ${email}?`)) {
@@ -977,6 +1334,8 @@
                     // Update overview stats
                     document.getElementById('analytics-social-total').textContent = overview.socialLinks?.total || 0;
                     document.getElementById('analytics-social-active').textContent = overview.socialLinks?.active || 0;
+                    document.getElementById('analytics-menu-total').textContent = overview.menuItems?.total || 0;
+                    document.getElementById('analytics-menu-active').textContent = overview.menuItems?.active || 0;
                     document.getElementById('analytics-ads-total').textContent = overview.ads?.total || 0;
                     document.getElementById('analytics-ads-clicks').textContent = overview.ads?.totalClicks || 0;
                     document.getElementById('analytics-ads-weekly').textContent = overview.ads?.weeklyClicks || 0;

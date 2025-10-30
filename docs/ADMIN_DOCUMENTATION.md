@@ -19,6 +19,7 @@ The Enish Radio Pro admin interface provides a comprehensive web-based dashboard
 
 ### 1. Dashboard Overview
 - **Social Links**: View and manage social media links
+- **Menu Items**: Configure app navigation menu items
 - **Ad Banners**: Manage advertising content and track performance
 - **Stream Metadata**: Control what's currently playing and manage track history
 - **User Management**: Manage admin users and their permissions
@@ -31,7 +32,15 @@ The Enish Radio Pro admin interface provides a comprehensive web-based dashboard
 - **Status Control**: Enable/disable links without deleting them
 - **Reordering**: Drag and drop to reorder links (planned feature)
 
-### 3. Ad Banner Management
+### 3. Menu Items Management
+- **Add Menu Items**: Create new navigation menu items with title, subtitle, icon, and target
+- **Type Control**: Choose between internal screens, external links, or custom actions
+- **Edit Items**: Update menu item information and configuration
+- **Delete Items**: Remove menu items
+- **Status Control**: Enable/disable items without deleting them
+- **Order Management**: Set display order for menu items
+
+### 4. Ad Banner Management
 - **Create Ads**: Add new advertising banners with images, URLs, and targeting
 - **Image Upload**: Automatic Cloudinary integration for image hosting
 - **Performance Tracking**: View click statistics and engagement
@@ -39,22 +48,23 @@ The Enish Radio Pro admin interface provides a comprehensive web-based dashboard
 - **Priority Control**: Set ad priority levels
 - **Status Management**: Enable/disable ads
 
-### 4. Stream Metadata Management
+### 5. Stream Metadata Management
 - **Add Tracks**: Manually add tracks to the stream
 - **Live Control**: Mark tracks as currently playing
 - **Track History**: View playback history
 - **Metadata Editing**: Update track information
 - **Source Integration**: Support for multiple data sources
 
-### 5. User Management
+### 6. User Management
 - **User Roles**: Admin and Moderator roles
 - **Account Status**: Enable/disable user accounts
 - **Role Assignment**: Change user permissions
 - **Account Deletion**: Remove users (with safety checks)
 - **Last Login Tracking**: Monitor user activity
 
-### 6. Analytics & Reporting
+### 7. Analytics & Reporting
 - **Social Media Stats**: Total and active link counts
+- **Menu Items Stats**: Total and active menu items
 - **Ad Performance**: Click tracking and engagement metrics
 - **Stream Data**: Track counts and active streams
 - **Historical Data**: View trends over time
@@ -76,6 +86,15 @@ The Enish Radio Pro admin interface provides a comprehensive web-based dashboard
 - `POST /api/social-links` - Create new social link
 - `PUT /api/social-links/:id` - Update social link
 - `DELETE /api/social-links/:id` - Delete social link
+
+### Menu Items
+- `GET /api/menu-items` - Get all active menu items (public)
+- `GET /api/menu-items/admin` - Get all menu items (admin only)
+- `GET /api/menu-items/:id` - Get single menu item (admin only)
+- `POST /api/menu-items` - Create new menu item (admin only)
+- `PUT /api/menu-items/:id` - Update menu item (admin only)
+- `PUT /api/menu-items/order` - Bulk update menu item ordering (admin only)
+- `DELETE /api/menu-items/:id` - Delete menu item (admin only)
 
 ### Ad Banners
 - `GET /api/ads/admin` - Get all ad banners
