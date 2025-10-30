@@ -35,19 +35,34 @@ export const STORAGE_KEYS = {
   AUTO_PLAY: 'auto_play_enabled',
 };
 
-// Colors
+// Colors - Extracted from Enish Radio Brand Logo
 export const COLORS = {
-  PRIMARY: '#1E88E5',
-  SECONDARY: '#42A5F5',
-  ACCENT: '#FF6B6B',
-  BACKGROUND: '#FFFFFF',
+  // Primary brand colors from logo
+  PRIMARY: '#B22234',        // Deep Red/Maroon (headphones, main accent)
+  SECONDARY: '#1FA8A0',      // Teal/Cyan (equalizer bars)
+  ACCENT: '#B8975A',         // Gold/Tan (ENISH text)
+  YELLOW: '#FFB81C',         // Bright Yellow (equalizer bars, RADIO text)
+
+  // Background colors
+  BACKGROUND: '#FDFCFB',     // Warm off-white/cream
   BACKGROUND_DARK: '#121212',
-  TEXT: '#333333',
-  TEXT_DARK: '#FFFFFF',
-  CARD: '#F5F5F5',
+  CARD: '#FFF8F0',           // Light cream for cards
   CARD_DARK: '#1E1E1E',
-  BORDER: '#E0E0E0',
+
+  // Text colors
+  TEXT: '#1C1C1C',           // Near black
+  TEXT_DARK: '#FFFFFF',
+  TEXT_SECONDARY: '#6B6B6B', // Gray for secondary text
+
+  // Border colors
+  BORDER: '#E8DDD0',         // Light tan border
   BORDER_DARK: '#333333',
+
+  // Additional brand colors from equalizer
+  EQUALIZER_RED: '#B22234',
+  EQUALIZER_TEAL: '#1FA8A0',
+  EQUALIZER_YELLOW: '#FFB81C',
+  EQUALIZER_BLACK: '#1C1C1C',
 };
 
 // Social Media Platforms

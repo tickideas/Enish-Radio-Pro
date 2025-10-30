@@ -11,8 +11,16 @@ interface AnimatedWaveformProps {
   barSpacing?: number;
   minHeight?: number;
   maxHeight?: number;
-  color?: string;
+  multiColor?: boolean;
 }
+
+// Brand colors from the Enish Radio logo equalizer
+const EQUALIZER_COLORS = [
+  COLORS.EQUALIZER_RED,
+  COLORS.EQUALIZER_TEAL,
+  COLORS.EQUALIZER_YELLOW,
+  COLORS.EQUALIZER_BLACK,
+];
 
 export default function AnimatedWaveform({
   isPlaying,
@@ -21,7 +29,7 @@ export default function AnimatedWaveform({
   barSpacing = 2,
   minHeight = 3,
   maxHeight = 40,
-  color = COLORS.PRIMARY,
+  multiColor = true,
 }: AnimatedWaveformProps) {
   const animatedValues = useRef(
     Array.from({ length: barCount }, () => new Animated.Value(minHeight))
@@ -69,21 +77,28 @@ export default function AnimatedWaveform({
 
   return (
     <View style={styles.container}>
-      {animatedValues.map((animValue, index) => (
-        <Animated.View
-          key={index}
-          style={[
-            styles.bar,
-            {
-              width: barWidth,
-              height: animValue,
-              backgroundColor: color,
-              marginHorizontal: barSpacing / 2,
-              opacity: isPlaying ? 0.7 + Math.random() * 0.3 : 0.3,
-            },
-          ]}
-        />
-      ))}
+      {animatedValues.map((animValue, index) => {
+        // Cycle through brand colors for multi-color effect
+        const barColor = multiColor
+          ? EQUALIZER_COLORS[index % EQUALIZER_COLORS.length]
+          : COLORS.PRIMARY;
+
+        return (
+          <Animated.View
+            key={index}
+            style={[
+              styles.bar,
+              {
+                width: barWidth,
+                height: animValue,
+                backgroundColor: barColor,
+                marginHorizontal: barSpacing / 2,
+                opacity: isPlaying ? 0.8 + Math.random() * 0.2 : 0.4,
+              },
+            ]}
+          />
+        );
+      })}
     </View>
   );
 }

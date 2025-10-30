@@ -48,7 +48,7 @@ export default function HomeScreen() {
           <AnimatedArtwork
             artworkUrl={audioPlayer.metadata.artwork}
             isPlaying={audioPlayer.isPlaying}
-            size={Math.min(width * 0.6, height * 0.35)}
+            size={Math.min(width * 0.45, height * 0.25)}
           />
         </View>
 
@@ -90,12 +90,12 @@ export default function HomeScreen() {
         <View style={styles.waveformContainer}>
           <AnimatedWaveform
             isPlaying={audioPlayer.isPlaying}
-            barCount={40}
-            barWidth={2}
-            barSpacing={2}
+            barCount={45}
+            barWidth={2.5}
+            barSpacing={1.5}
             minHeight={2}
-            maxHeight={35}
-            color={COLORS.PRIMARY}
+            maxHeight={32}
+            multiColor={true}
           />
         </View>
 
@@ -179,13 +179,14 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: Math.min(28, width * 0.07),
     fontWeight: 'bold',
-    color: COLORS.PRIMARY,
+    color: COLORS.ACCENT,
     marginBottom: 2,
+    letterSpacing: 0.5,
   },
   tagline: {
     fontSize: Math.min(16, width * 0.04),
-    color: COLORS.TEXT,
-    opacity: 0.7,
+    color: COLORS.TEXT_SECONDARY,
+    opacity: 0.85,
   },
   mainContent: {
     flex: 1,
@@ -208,22 +209,21 @@ const styles = StyleSheet.create({
   },
   trackTitle: {
     fontSize: Math.min(20, width * 0.05),
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: COLORS.TEXT,
     textAlign: 'center',
-    marginBottom: 3,
+    marginBottom: 4,
   },
   trackArtist: {
     fontSize: Math.min(16, width * 0.04),
-    color: COLORS.TEXT,
-    opacity: 0.8,
+    color: COLORS.TEXT_SECONDARY,
     textAlign: 'center',
     marginBottom: 2,
   },
   trackAlbum: {
     fontSize: Math.min(14, width * 0.035),
-    color: COLORS.TEXT,
-    opacity: 0.6,
+    color: COLORS.TEXT_SECONDARY,
+    opacity: 0.7,
     textAlign: 'center',
   },
   bufferingIndicator: {
@@ -273,13 +273,15 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   sideButton: {
-    padding: 10,
+    padding: 12,
     borderRadius: 25,
     backgroundColor: COLORS.CARD,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    shadowColor: COLORS.PRIMARY,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
     elevation: 2,
   },
   volumeControlExpanded: {
@@ -319,19 +321,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: COLORS.BORDER,
     borderStyle: 'dashed',
     marginTop: 'auto',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowColor: COLORS.PRIMARY,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 3,
+    elevation: 1,
   },
   adText: {
-    color: COLORS.TEXT,
-    opacity: 0.6,
+    color: COLORS.TEXT_SECONDARY,
     fontSize: Math.min(14, width * 0.035),
     fontWeight: '500',
   },
