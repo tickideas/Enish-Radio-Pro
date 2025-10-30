@@ -132,6 +132,25 @@ The app uses Expo Application Services (EAS) for building. Configuration is in `
 - Preview builds for internal testing
 - Production builds for app store submission
 
+#### Notes on common EAS messages
+- "Found eas-cli in your project dependencies" — We already pin the CLI via `cli.version` in `eas.json` (currently `16.24.1`). This ensures consistent builds locally and on CI.
+- "No environment variables ... found for the \"production\" environment on EAS" — Informational. This project uses TypeScript-based env config (`constants/env.*.ts`) instead of EAS env vars. If you need secrets for builds, add them in the EAS dashboard or with `eas secret:create`.
+- "No remote versions are configured ... Initialized versionCode with 1" — Expected on first build when `appVersionSource` is set to `remote` in `eas.json`. EAS initializes and manages app versions for you.
+
+Optional version management commands:
+
+```sh
+# Set up remote versioning policy interactively (recommended once)
+eas version:configure
+
+# Bump versions when needed (with appVersionSource: remote)
+eas version:set --platform android --auto
+eas version:set --platform ios --auto
+
+# Sync local files with remote versions (if switching strategies)
+eas version:sync
+```
+
 ## 🎨 Admin Panel
 
 The mobile app includes a comprehensive admin panel for managing radio station content:
