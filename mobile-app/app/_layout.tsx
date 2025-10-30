@@ -39,6 +39,7 @@ export default function RootLayout() {
             options={{
               title: 'Home',
               drawerLabel: 'Home',
+              headerShown: false,
               drawerIcon: ({ color, size }) => (
                 <Ionicons name="home" size={size} color={color} />
               ),

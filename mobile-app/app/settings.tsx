@@ -10,10 +10,12 @@ import {
   Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 
 export default function SettingsScreen() {
+  const router = useRouter();
   const audioPlayer = useAudioPlayerContext();
   const [notifications, setNotifications] = useState(true);
   const [autoPlay, setAutoPlay] = useState(true);
@@ -85,6 +87,17 @@ export default function SettingsScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Back Button Header */}
+      <View style={styles.backButtonContainer}>
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => router.back()}
+        >
+          <Ionicons name="arrow-back" size={24} color={COLORS.PRIMARY} />
+          <Text style={styles.backButtonText}>Back to Player</Text>
+        </TouchableOpacity>
+      </View>
+
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
@@ -227,6 +240,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
+  },
+  backButtonContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 15,
+    paddingBottom: 10,
+    backgroundColor: COLORS.BACKGROUND,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.BORDER,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: COLORS.PRIMARY,
+    fontWeight: '600',
   },
   scrollContent: {
     padding: 20,

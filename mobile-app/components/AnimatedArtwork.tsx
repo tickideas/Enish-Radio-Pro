@@ -32,6 +32,11 @@ export default function AnimatedArtwork({
   const pulseValue = useRef(new Animated.Value(1)).current;
   const glowValue = useRef(new Animated.Value(0)).current;
 
+  // Ripple animation values
+  const ripple1 = useRef(new Animated.Value(0)).current;
+  const ripple2 = useRef(new Animated.Value(0)).current;
+  const ripple3 = useRef(new Animated.Value(0)).current;
+
   // Rotation animation
   useEffect(() => {
     if (isPlaying) {
@@ -112,6 +117,63 @@ export default function AnimatedArtwork({
     }
   }, [isPlaying, glowValue]);
 
+  // Ripple animations
+  useEffect(() => {
+    if (isPlaying) {
+      const createRippleAnimation = (rippleValue: Animated.Value, delay: number) => {
+        return Animated.loop(
+          Animated.sequence([
+            Animated.delay(delay),
+            Animated.parallel([
+              Animated.timing(rippleValue, {
+                toValue: 1,
+                duration: 2000,
+                useNativeDriver: true,
+              }),
+            ]),
+            Animated.timing(rippleValue, {
+              toValue: 0,
+              duration: 0,
+              useNativeDriver: true,
+            }),
+          ])
+        );
+      };
+
+      const ripple1Animation = createRippleAnimation(ripple1, 0);
+      const ripple2Animation = createRippleAnimation(ripple2, 600);
+      const ripple3Animation = createRippleAnimation(ripple3, 1200);
+
+      ripple1Animation.start();
+      ripple2Animation.start();
+      ripple3Animation.start();
+
+      return () => {
+        ripple1Animation.stop();
+        ripple2Animation.stop();
+        ripple3Animation.stop();
+      };
+    } else {
+      Animated.parallel([
+        Animated.timing(ripple1, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ripple2, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(ripple3, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }
+  }, [isPlaying, ripple1, ripple2, ripple3]);
+
   // Reset image error when artwork changes
   useEffect(() => {
     if (artworkUrl) {
@@ -135,8 +197,81 @@ export default function AnimatedArtwork({
     outputRange: [1, 1.15],
   });
 
+  // Ripple interpolations
+  const ripple1Scale = ripple1.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.4],
+  });
+
+  const ripple1Opacity = ripple1.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.6, 0.3, 0],
+  });
+
+  const ripple2Scale = ripple2.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.4],
+  });
+
+  const ripple2Opacity = ripple2.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.6, 0.3, 0],
+  });
+
+  const ripple3Scale = ripple3.interpolate({
+    inputRange: [0, 1],
+    outputRange: [1, 1.4],
+  });
+
+  const ripple3Opacity = ripple3.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: [0.6, 0.3, 0],
+  });
+
   return (
     <View style={styles.container}>
+      {/* Ripple effects */}
+      {isPlaying && (
+        <>
+          <Animated.View
+            style={[
+              styles.ripple,
+              {
+                width: size * 1.1,
+                height: size * 1.1,
+                borderRadius: size * 0.55,
+                opacity: ripple1Opacity,
+                transform: [{ scale: ripple1Scale }],
+              },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.ripple,
+              {
+                width: size * 1.1,
+                height: size * 1.1,
+                borderRadius: size * 0.55,
+                opacity: ripple2Opacity,
+                transform: [{ scale: ripple2Scale }],
+              },
+            ]}
+          />
+          <Animated.View
+            style={[
+              styles.ripple,
+              {
+                width: size * 1.1,
+                height: size * 1.1,
+                borderRadius: size * 0.55,
+                opacity: ripple3Opacity,
+                transform: [{ scale: ripple3Scale }],
+              },
+            ]}
+          />
+        </>
+      )}
+
       {/* Animated glow effect */}
       {isPlaying && (
         <Animated.View
@@ -191,13 +326,22 @@ export default function AnimatedArtwork({
               />
               {imageLoading && (
                 <View style={styles.loadingOverlay}>
-                  <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+                  <Image
+                    source={require('@/assets/images/icon.png')}
+                    style={styles.loadingPlaceholder}
+                    resizeMode="contain"
+                  />
+                  <ActivityIndicator size="large" color={COLORS.PRIMARY} style={styles.loadingSpinner} />
                 </View>
               )}
             </>
           ) : (
             <View style={styles.placeholderContainer}>
-              <Ionicons name="radio" size={size * 0.35} color={COLORS.PRIMARY} />
+              <Image
+                source={require('@/assets/images/icon.png')}
+                style={styles.placeholderImage}
+                resizeMode="contain"
+              />
               {/* Small pulsing indicator when playing */}
               {isPlaying && (
                 <Animated.View
@@ -222,6 +366,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  ripple: {
+    position: 'absolute',
+    borderWidth: 8,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
+    backgroundColor: 'transparent',
+  },
   glowContainer: {
     position: 'absolute',
     borderRadius: 1000,
@@ -234,7 +384,7 @@ const styles = StyleSheet.create({
   },
   artworkContainer: {
     borderRadius: 1000, // Fully circular
-    backgroundColor: COLORS.CARD, // Cream background for transparent images
+    backgroundColor: '#FFFFFF', // White background
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: COLORS.PRIMARY,
@@ -267,11 +417,12 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 1000,
     overflow: 'hidden',
-    backgroundColor: COLORS.CARD, // Ensure cream background shows through
+    backgroundColor: '#FFFFFF', // White background for artwork
   },
   artworkImage: {
     width: '100%',
     height: '100%',
+    backgroundColor: '#FFFFFF', // White background behind the image
   },
   loadingOverlay: {
     position: 'absolute',
@@ -279,16 +430,28 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(255, 248, 240, 0.9)',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  loadingPlaceholder: {
+    width: '60%',
+    height: '60%',
+    opacity: 0.3,
+  },
+  loadingSpinner: {
+    position: 'absolute',
   },
   placeholderContainer: {
     width: '100%',
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.CARD,
+    backgroundColor: '#FFFFFF',
+  },
+  placeholderImage: {
+    width: '70%',
+    height: '70%',
   },
   playingDot: {
     position: 'absolute',

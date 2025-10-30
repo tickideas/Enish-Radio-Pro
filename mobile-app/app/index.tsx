@@ -5,17 +5,23 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
+  ImageBackground,
   Alert,
   Dimensions,
   ActivityIndicator,
   Linking,
+  StatusBar,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 import AnimatedArtwork from '@/components/AnimatedArtwork';
 import AnimatedWaveform from '@/components/AnimatedWaveform';
 import { ApiService } from '@/services/api';
+import { useRouter } from 'expo-router';
+import { DrawerActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
@@ -34,6 +40,8 @@ export default function HomeScreen() {
   const [isBannerLoading, setIsBannerLoading] = useState(false);
 
   const audioPlayer = useAudioPlayerContext();
+  const router = useRouter();
+  const navigation = useNavigation();
 
   // Fetch ad banners
   useEffect(() => {
@@ -87,143 +95,142 @@ export default function HomeScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.appName}>{APP_CONFIG.NAME}</Text>
-        <Text style={styles.tagline}>Your Premium Radio Experience</Text>
-      </View>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-      {/* Main Content Area */}
-      <View style={styles.mainContent}>
-        {/* Animated Album Art / Visualizer */}
-        <View style={styles.albumArtContainer}>
-          <AnimatedArtwork
-            artworkUrl={audioPlayer.metadata.artwork}
-            isPlaying={audioPlayer.isPlaying}
-            size={Math.min(width * 0.45, height * 0.25)}
-          />
-        </View>
-
-        {/* Track Info with Status */}
-        <View style={styles.trackInfo}>
-          <Text style={styles.trackTitle}>
-            {audioPlayer.metadata.title || 'Enish Radio Live'}
-          </Text>
-          <Text style={styles.trackArtist}>
-            {audioPlayer.metadata.artist || '24/7 Music Stream'}
-          </Text>
-          {audioPlayer.metadata.album && (
-            <Text style={styles.trackAlbum}>{audioPlayer.metadata.album}</Text>
-          )}
-          
-          {/* Status Indicators - Integrated with track info */}
-          <View style={styles.statusContainer}>
-            {audioPlayer.isBuffering && !audioPlayer.isPlaying && (
-              <View style={styles.bufferingIndicator}>
-                <ActivityIndicator size="small" color={COLORS.PRIMARY} />
-                <Text style={styles.statusText}>Buffering...</Text>
-              </View>
-            )}
-            {audioPlayer.error && (
-              <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{audioPlayer.error}</Text>
-                <TouchableOpacity
-                  style={styles.retryButton}
-                  onPress={audioPlayer.retryConnection}
-                >
-                  <Text style={styles.retryText}>Retry</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </View>
-        </View>
-
-        {/* Animated Waveform Visualizer */}
-        <View style={styles.waveformContainer}>
-          <AnimatedWaveform
-            isPlaying={audioPlayer.isPlaying}
-            barCount={45}
-            barWidth={2.5}
-            barSpacing={1.5}
-            minHeight={2}
-            maxHeight={32}
-            multiColor={true}
-          />
-        </View>
-
-        {/* Combined Player Controls and Volume */}
-        <View style={styles.playerControlsRow}>
-          {/* Share Button */}
-          <TouchableOpacity 
-            style={styles.sideButton}
-            onPress={handleShareApp}
-          >
-            <Ionicons name="share-social" size={28} color={COLORS.PRIMARY} />
-          </TouchableOpacity>
-
-          {/* Main Play/Pause Button - Center */}
-          <TouchableOpacity 
-            style={styles.mainControlButton}
-            onPress={audioPlayer.togglePlayPause}
-            disabled={audioPlayer.isLoading}
-          >
-            <Ionicons
-              name={audioPlayer.isPlaying ? 'pause-circle' : 'play-circle'}
-              size={width * 0.18}
-              color={COLORS.PRIMARY}
-            />
-          </TouchableOpacity>
-
-          {/* Volume Button */}
-          <TouchableOpacity 
-            style={styles.sideButton}
-            onPress={() => setShowVolumeControl(!showVolumeControl)}
-          >
-            <Ionicons 
-              name={audioPlayer.volume === 0 ? 'volume-mute' : audioPlayer.volume < 0.5 ? 'volume-low' : 'volume-high'} 
-              size={28} 
-              color={COLORS.PRIMARY} 
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Volume Control - Shows when volume button is pressed */}
-        {showVolumeControl && (
-          <View style={styles.volumeControlExpanded}>
-            <Text style={styles.volumeLabel}>Volume: {Math.round(audioPlayer.volume * 100)}%</Text>
-            <View style={styles.volumeSliderContainer}>
+      {/* Main Content with Background Image and Gradient */}
+      <ImageBackground
+        source={{ uri: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=800' }}
+        style={styles.backgroundImage}
+        resizeMode="cover"
+      >
+        <LinearGradient
+          colors={['rgba(178, 34, 52, 0.5)', 'rgba(184, 151, 90, 0.55)', 'rgba(31, 168, 160, 0.6)']}
+          style={styles.gradientOverlay}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+        >
+          {/* Header Bar - Transparent Overlay */}
+          <View style={styles.headerBar}>
+            <View style={styles.headerBarContent}>
               <TouchableOpacity
-                style={styles.volumeSlider}
-                onPress={(e) => {
-                  const { locationX } = e.nativeEvent;
-                  const sliderWidth = width * 0.6;
-                  const newVolume = Math.max(0, Math.min(1, locationX / sliderWidth));
-                  audioPlayer.setVolume(newVolume);
-                }}
+                style={styles.headerIconButton}
+                onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
               >
-                <View style={styles.volumeTrack}>
-                  <View style={[styles.volumeFill, { width: `${audioPlayer.volume * 100}%` }]} />
-                </View>
+                <Ionicons name="menu" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <View style={styles.headerTitleContainer}>
+                <Text style={styles.headerTitle}>{APP_CONFIG.NAME}</Text>
+              </View>
+
+              <TouchableOpacity
+                style={styles.headerIconButton}
+                onPress={() => router.push('/settings')}
+              >
+                <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
           </View>
-        )}
 
-        {/* Ad Banner - Only shown when there's an active banner */}
-        {activeBanner && (
-          <TouchableOpacity
-            style={styles.adBanner}
-            onPress={handleBannerClick}
-            activeOpacity={0.8}
-          >
-            <Image
-              source={{ uri: activeBanner.imageUrl }}
-              style={styles.adImage}
-              resizeMode="contain"
-            />
-          </TouchableOpacity>
-        )}
-      </View>
+          <View style={styles.mainContent}>
+            {/* Animated Album Art / Visualizer - Centered */}
+            <View style={styles.albumArtContainer}>
+              <AnimatedArtwork
+                artworkUrl={audioPlayer.metadata.artwork}
+                isPlaying={audioPlayer.isPlaying}
+                size={Math.min(width * 0.58, height * 0.28)}
+              />
+            </View>
+
+            {/* Track Info - Positioned lower */}
+            <View style={styles.trackInfo}>
+              <Text style={styles.trackTitle}>
+                {audioPlayer.metadata.title || 'Enish Radio Live'}
+              </Text>
+              <Text style={styles.trackArtist}>
+                {audioPlayer.metadata.artist || '24/7 Music Stream'}
+              </Text>
+              {audioPlayer.metadata.album && (
+                <Text style={styles.trackAlbum}>{audioPlayer.metadata.album}</Text>
+              )}
+            </View>
+
+            {/* Status Indicators - Minimal */}
+            {(audioPlayer.isBuffering || audioPlayer.error) && (
+              <View style={styles.statusContainer}>
+                {audioPlayer.isBuffering && !audioPlayer.isPlaying && (
+                  <View style={styles.bufferingIndicator}>
+                    <ActivityIndicator size="small" color="#FFFFFF" />
+                  </View>
+                )}
+                {audioPlayer.error && (
+                  <TouchableOpacity
+                    style={styles.retryButton}
+                    onPress={audioPlayer.retryConnection}
+                  >
+                    <Ionicons name="refresh" size={24} color="#FFFFFF" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            )}
+
+            {/* Spacer */}
+            <View style={{ flex: 1 }} />
+
+            {/* Animated Waveform Visualizer - At Bottom */}
+            <View style={styles.waveformContainer}>
+              <AnimatedWaveform
+                isPlaying={audioPlayer.isPlaying}
+                barCount={50}
+                barWidth={3}
+                barSpacing={2}
+                minHeight={4}
+                maxHeight={60}
+                multiColor={true}
+              />
+            </View>
+
+            {/* Player Controls */}
+            <View style={styles.playerControlsRow}>
+              {/* Radio/Station Button */}
+              <TouchableOpacity
+                style={styles.sideButton}
+                onPress={() => {
+                  // Future: Open station list
+                  Alert.alert('Stations', 'Station list coming soon');
+                }}
+              >
+                <Ionicons name="radio-outline" size={28} color={COLORS.PRIMARY} />
+              </TouchableOpacity>
+
+              {/* Main Play/Pause Button - Center */}
+              <TouchableOpacity
+                style={styles.mainControlButton}
+                onPress={audioPlayer.togglePlayPause}
+                disabled={audioPlayer.isLoading}
+              >
+                <View style={styles.playButtonCircle}>
+                  <Ionicons
+                    name={audioPlayer.isPlaying ? 'pause' : 'play'}
+                    size={42}
+                    color="#FFFFFF"
+                  />
+                </View>
+              </TouchableOpacity>
+
+              {/* Refresh Button */}
+              <TouchableOpacity
+                style={styles.sideButton}
+                onPress={() => {
+                  audioPlayer.retryConnection();
+                }}
+              >
+                <Ionicons name="refresh-outline" size={28} color={COLORS.PRIMARY} />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </LinearGradient>
+      </ImageBackground>
     </View>
   );
 }
@@ -233,169 +240,150 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.BACKGROUND,
   },
-  header: {
+  headerBar: {
+    paddingTop: height * 0.06, // Status bar height
+    paddingBottom: height * 0.015,
+    paddingHorizontal: width * 0.04,
+    backgroundColor: 'transparent',
+  },
+  headerBarContent: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingTop: height * 0.02,
-    paddingBottom: height * 0.01,
+    justifyContent: 'space-between',
   },
-  appName: {
-    fontSize: Math.min(28, width * 0.07),
+  headerIconButton: {
+    padding: 8,
+    width: 40,
+  },
+  headerTitleContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: COLORS.ACCENT,
-    marginBottom: 2,
+    color: '#FFFFFF',
     letterSpacing: 0.5,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  tagline: {
-    fontSize: Math.min(16, width * 0.04),
-    color: COLORS.TEXT_SECONDARY,
-    opacity: 0.85,
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+  },
+  gradientOverlay: {
+    flex: 1,
   },
   mainContent: {
     flex: 1,
     paddingHorizontal: width * 0.05,
-    paddingBottom: height * 0.02,
-    justifyContent: 'space-between',
+    paddingBottom: height * 0.03,
+    paddingTop: height * 0.03,
   },
   albumArtContainer: {
     alignItems: 'center',
-    marginBottom: height * 0.025,
-  },
-  waveformContainer: {
-    alignItems: 'center',
-    marginBottom: height * 0.02,
-    paddingHorizontal: width * 0.05,
+    marginTop: height * 0.02,
+    marginBottom: height * 0.015,
   },
   trackInfo: {
     alignItems: 'center',
-    marginBottom: height * 0.02,
+    marginTop: height * 0.04,
+    paddingHorizontal: width * 0.08,
+    paddingVertical: height * 0.02,
+    marginHorizontal: width * 0.05,
   },
   trackTitle: {
-    fontSize: Math.min(20, width * 0.05),
-    fontWeight: '700',
-    color: COLORS.TEXT,
+    fontSize: Math.min(24, width * 0.06),
+    fontWeight: 'bold',
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 8,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   trackArtist: {
-    fontSize: Math.min(16, width * 0.04),
-    color: COLORS.TEXT_SECONDARY,
+    fontSize: Math.min(18, width * 0.045),
+    fontWeight: '600',
+    color: '#FFFFFF',
     textAlign: 'center',
-    marginBottom: 2,
+    marginBottom: 4,
+    opacity: 0.95,
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
   },
   trackAlbum: {
-    fontSize: Math.min(14, width * 0.035),
-    color: COLORS.TEXT_SECONDARY,
-    opacity: 0.7,
+    fontSize: Math.min(15, width * 0.038),
+    color: '#FFFFFF',
+    opacity: 0.8,
     textAlign: 'center',
-  },
-  bufferingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 5,
+    fontStyle: 'italic',
+    textShadowColor: 'rgba(0, 0, 0, 0.3)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   statusContainer: {
     alignItems: 'center',
-    marginTop: 5,
+    marginTop: height * 0.01,
   },
-  statusText: {
-    fontSize: 12,
-    color: COLORS.PRIMARY,
-    fontStyle: 'italic',
-    marginLeft: 5,
-  },
-  errorContainer: {
+  bufferingIndicator: {
     alignItems: 'center',
-    marginTop: 5,
-  },
-  errorText: {
-    fontSize: 12,
-    color: '#FF6B6B',
-    textAlign: 'center',
-    marginBottom: 5,
   },
   retryButton: {
-    backgroundColor: COLORS.PRIMARY,
-    paddingHorizontal: 15,
-    paddingVertical: 5,
-    borderRadius: 15,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 25,
   },
-  retryText: {
-    color: 'white',
-    fontWeight: 'bold',
-    fontSize: 12,
+  waveformContainer: {
+    alignItems: 'center',
+    marginBottom: height * 0.025,
+    paddingHorizontal: width * 0.05,
+    paddingVertical: height * 0.015,
+    marginHorizontal: width * 0.05,
   },
   playerControlsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: height * 0.02,
     paddingHorizontal: width * 0.1,
-  },
-  mainControlButton: {
-    padding: 5,
+    marginBottom: height * 0.015,
+    marginTop: height * 0.01,
   },
   sideButton: {
-    padding: 12,
-    borderRadius: 25,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: COLORS.CARD,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  volumeControlExpanded: {
     alignItems: 'center',
-    marginBottom: height * 0.02,
-    paddingVertical: 10,
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+    borderWidth: 2,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
   },
-  volumeLabel: {
-    fontSize: 12,
-    color: COLORS.TEXT,
-    marginBottom: 5,
-  },
-  volumeSliderContainer: {
-    width: width * 0.6,
-  },
-  volumeSlider: {
-    height: 20,
+  mainControlButton: {
+    alignItems: 'center',
     justifyContent: 'center',
   },
-  volumeTrack: {
-    height: 4,
-    backgroundColor: COLORS.BORDER,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  volumeFill: {
-    height: '100%',
-    backgroundColor: COLORS.PRIMARY,
-    borderRadius: 2,
-  },
-  sleepTimerContainer: {
-    marginBottom: height * 0.02,
-  },
-  adBanner: {
-    backgroundColor: COLORS.CARD,
-    height: Math.min(100, height * 0.12),
-    width: '100%',
-    justifyContent: 'center',
+  playButtonCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.YELLOW,
     alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
-    marginTop: height * 0.02,
-    overflow: 'hidden',
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.15,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  adImage: {
-    width: '100%',
-    height: '100%',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+    borderWidth: 3,
+    borderColor: 'rgba(255, 255, 255, 0.4)',
   },
 });
