@@ -11,6 +11,8 @@ import type { DrawerContentComponentProps } from '@react-navigation/drawer';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { COLORS, APP_CONFIG, API_ENDPOINTS } from '@/constants/radio';
 import { AudioPlayerProvider } from '@/contexts/AudioPlayerContext';
+import AnimatedSplashScreen from '@/components/AnimatedSplashScreen';
+import * as SplashScreen from 'expo-splash-screen';
 
 type MenuItem = {
   id: string;
@@ -50,6 +52,39 @@ const normalizeOrder = (value: unknown): number => {
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
+  const [appIsReady, setAppIsReady] = useState(false);
+
+  const handleAnimationComplete = useCallback(async () => {
+    try {
+      // Hide the native splash screen
+      await SplashScreen.hideAsync();
+      setAppIsReady(true);
+    } catch (e) {
+      console.warn('Error hiding splash screen:', e);
+      setAppIsReady(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    // Preload any additional resources here if needed
+    const prepareApp = async () => {
+      try {
+        // You can add any resource loading here
+        // For example, font loading, API calls, etc.
+        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate loading
+      } catch (e) {
+        console.warn('Error preparing app:', e);
+      } finally {
+        setAppIsReady(true);
+      }
+    };
+
+    prepareApp();
+  }, []);
+
+  if (!appIsReady) {
+    return <AnimatedSplashScreen onAnimationComplete={handleAnimationComplete} />;
+  }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
