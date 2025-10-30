@@ -12,14 +12,14 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
+import AnimatedArtwork from '@/components/AnimatedArtwork';
+import AnimatedWaveform from '@/components/AnimatedWaveform';
 
 const { width, height } = Dimensions.get('window');
 
 export default function HomeScreen() {
   const [showVolumeControl, setShowVolumeControl] = useState(false);
-  const [imageLoading, setImageLoading] = useState(false);
-  const [imageError, setImageError] = useState(false);
-  
+
   const audioPlayer = useAudioPlayerContext();
 
   // Trigger auto-play when component mounts
@@ -27,17 +27,6 @@ export default function HomeScreen() {
     // This will be handled by the audio player hook automatically
     // but we can add additional app launch logic here if needed
   }, []);
-
-  // Handle image loading state changes
-  useEffect(() => {
-    if (audioPlayer.metadata.artwork) {
-      setImageLoading(true);
-      setImageError(false);
-    } else {
-      setImageLoading(false);
-      setImageError(false);
-    }
-  }, [audioPlayer.metadata.artwork]);
 
   const handleShareApp = () => {
     // This will be implemented with react-native-share
@@ -54,48 +43,13 @@ export default function HomeScreen() {
 
       {/* Main Content Area */}
       <View style={styles.mainContent}>
-        {/* Album Art / Visualizer */}
+        {/* Animated Album Art / Visualizer */}
         <View style={styles.albumArtContainer}>
-          <View style={styles.albumArt}>
-            {audioPlayer.metadata.artwork && !imageError ? (
-              <>
-                <Image 
-                  source={{ uri: audioPlayer.metadata.artwork }} 
-                  style={styles.albumArtImage}
-                  resizeMode="cover"
-                  onLoad={() => setImageLoading(false)}
-                  onLoadStart={() => setImageLoading(true)}
-                  onError={() => {
-                    setImageError(true);
-                    setImageLoading(false);
-                  }}
-                />
-                {imageLoading && (
-                  <View style={styles.imageLoadingOverlay}>
-                    <ActivityIndicator size="large" color={COLORS.PRIMARY} />
-                  </View>
-                )}
-              </>
-            ) : (
-              <>
-                <Ionicons 
-                  name="radio" 
-                  size={width * 0.2} 
-                  color={COLORS.PRIMARY} 
-                  style={styles.radioIcon}
-                />
-                {audioPlayer.isPlaying && (
-                  <View style={styles.playingIndicator}>
-                    <View style={[styles.bar, { height: 20 }]} />
-                    <View style={[styles.bar, { height: 35 }]} />
-                    <View style={[styles.bar, { height: 25 }]} />
-                    <View style={[styles.bar, { height: 40 }]} />
-                    <View style={[styles.bar, { height: 30 }]} />
-                  </View>
-                )}
-              </>
-            )}
-          </View>
+          <AnimatedArtwork
+            artworkUrl={audioPlayer.metadata.artwork}
+            isPlaying={audioPlayer.isPlaying}
+            size={Math.min(width * 0.6, height * 0.35)}
+          />
         </View>
 
         {/* Track Info with Status */}
@@ -112,7 +66,7 @@ export default function HomeScreen() {
           
           {/* Status Indicators - Integrated with track info */}
           <View style={styles.statusContainer}>
-            {audioPlayer.isBuffering && (
+            {audioPlayer.isBuffering && !audioPlayer.isPlaying && (
               <View style={styles.bufferingIndicator}>
                 <ActivityIndicator size="small" color={COLORS.PRIMARY} />
                 <Text style={styles.statusText}>Buffering...</Text>
@@ -121,7 +75,7 @@ export default function HomeScreen() {
             {audioPlayer.error && (
               <View style={styles.errorContainer}>
                 <Text style={styles.errorText}>{audioPlayer.error}</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.retryButton}
                   onPress={audioPlayer.retryConnection}
                 >
@@ -130,6 +84,19 @@ export default function HomeScreen() {
               </View>
             )}
           </View>
+        </View>
+
+        {/* Animated Waveform Visualizer */}
+        <View style={styles.waveformContainer}>
+          <AnimatedWaveform
+            isPlaying={audioPlayer.isPlaying}
+            barCount={40}
+            barWidth={2}
+            barSpacing={2}
+            minHeight={2}
+            maxHeight={35}
+            color={COLORS.PRIMARY}
+          />
         </View>
 
         {/* Combined Player Controls and Volume */}
@@ -228,53 +195,12 @@ const styles = StyleSheet.create({
   },
   albumArtContainer: {
     alignItems: 'center',
+    marginBottom: height * 0.025,
+  },
+  waveformContainer: {
+    alignItems: 'center',
     marginBottom: height * 0.02,
-  },
-  albumArt: {
-    width: Math.min(width * 0.5, height * 0.3),
-    height: Math.min(width * 0.5, height * 0.3),
-    borderRadius: 15,
-    backgroundColor: COLORS.CARD,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-    overflow: 'hidden',
-  },
-  albumArtImage: {
-    width: '100%',
-    height: '100%',
-    borderRadius: 15,
-  },
-  imageLoadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 15,
-  },
-  radioIcon: {
-    marginBottom: height * 0.01,
-  },
-  playingIndicator: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    height: 30,
-    position: 'absolute',
-    bottom: 15,
-  },
-  bar: {
-    width: 3,
-    backgroundColor: COLORS.PRIMARY,
-    marginHorizontal: 1.5,
-    borderRadius: 1.5,
+    paddingHorizontal: width * 0.05,
   },
   trackInfo: {
     alignItems: 'center',
