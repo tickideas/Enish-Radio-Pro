@@ -74,31 +74,58 @@ const withRetry = async <T>(
   maxRetries: number = MAX_RETRIES
 ): Promise<T> => {
   let lastError: any;
-  
+
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await apiCall();
     } catch (error: any) {
       lastError = error;
-      
+
       // Don't retry on authentication errors or 4xx errors
       if (error.status === 401 || (error.status >= 400 && error.status < 500)) {
         throw error;
       }
-      
+
       // Don't retry on network errors if we've reached max retries
       if (error.isNetworkError && attempt === maxRetries) {
         throw error;
       }
-      
+
       // Wait before retrying
       if (attempt < maxRetries) {
         await sleep(RETRY_DELAY * attempt);
       }
     }
   }
-  
+
   throw lastError;
+};
+
+// Retry wrapper with caching support
+const withRetryAndCache = async <T>(
+  apiCall: () => Promise<T>,
+  cacheKey: string,
+  maxRetries: number = MAX_RETRIES,
+  ttl: number | false = 5 * 60 * 1000 // Default 5 minutes
+): Promise<T> => {
+  // If caching is disabled (ttl === false), just use retry
+  if (ttl === false) {
+    return withRetry(apiCall, maxRetries);
+  }
+
+  // Try to get from cache first
+  const cached = await CacheService.get<T>(cacheKey);
+  if (cached !== null) {
+    return cached;
+  }
+
+  // If not in cache, make the API call with retry
+  const result = await withRetry(apiCall, maxRetries);
+
+  // Cache the result
+  await CacheService.set(cacheKey, result, ttl);
+
+  return result;
 };
 
 // API Service class

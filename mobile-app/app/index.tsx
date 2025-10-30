@@ -8,29 +8,81 @@ import {
   Alert,
   Dimensions,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 import AnimatedArtwork from '@/components/AnimatedArtwork';
 import AnimatedWaveform from '@/components/AnimatedWaveform';
+import { ApiService } from '@/services/api';
 
 const { width, height } = Dimensions.get('window');
 
+interface AdBanner {
+  _id: string;
+  title: string;
+  imageUrl: string;
+  targetUrl?: string;
+  isActive: boolean;
+  position: number;
+}
+
 export default function HomeScreen() {
   const [showVolumeControl, setShowVolumeControl] = useState(false);
+  const [activeBanner, setActiveBanner] = useState<AdBanner | null>(null);
+  const [isBannerLoading, setIsBannerLoading] = useState(false);
 
   const audioPlayer = useAudioPlayerContext();
 
-  // Trigger auto-play when component mounts
+  // Fetch ad banners
   useEffect(() => {
-    // This will be handled by the audio player hook automatically
-    // but we can add additional app launch logic here if needed
+    const fetchAdBanners = async () => {
+      try {
+        setIsBannerLoading(true);
+        const response = await ApiService.getPublicAdBanners();
+        // Get the first active banner
+        const activeAd = response.data?.find((banner: AdBanner) => banner.isActive);
+        setActiveBanner(activeAd || null);
+      } catch (error) {
+        console.error('Error fetching ad banners:', error);
+        // Silently fail - no banner will be shown
+      } finally {
+        setIsBannerLoading(false);
+      }
+    };
+
+    fetchAdBanners();
+
+    // Refresh banners every 5 minutes
+    const interval = setInterval(fetchAdBanners, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleShareApp = () => {
     // This will be implemented with react-native-share
     Alert.alert('Share App', 'Share functionality will be implemented soon.');
+  };
+
+  const handleBannerClick = async () => {
+    if (!activeBanner) return;
+
+    try {
+      // Track the click
+      await ApiService.trackAdClick(activeBanner._id);
+
+      // Open the URL if it exists
+      if (activeBanner.targetUrl) {
+        const canOpen = await Linking.canOpenURL(activeBanner.targetUrl);
+        if (canOpen) {
+          await Linking.openURL(activeBanner.targetUrl);
+        } else {
+          Alert.alert('Error', 'Cannot open this URL');
+        }
+      }
+    } catch (error) {
+      console.error('Error handling banner click:', error);
+    }
   };
 
   return (
@@ -140,7 +192,7 @@ export default function HomeScreen() {
           <View style={styles.volumeControlExpanded}>
             <Text style={styles.volumeLabel}>Volume: {Math.round(audioPlayer.volume * 100)}%</Text>
             <View style={styles.volumeSliderContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.volumeSlider}
                 onPress={(e) => {
                   const { locationX } = e.nativeEvent;
@@ -157,10 +209,20 @@ export default function HomeScreen() {
           </View>
         )}
 
-        {/* Ad Banner - Prominently positioned */}
-        <View style={styles.adBanner}>
-          <Text style={styles.adText}>Advertisement Space</Text>
-        </View>
+        {/* Ad Banner - Only shown when there's an active banner */}
+        {activeBanner && (
+          <TouchableOpacity
+            style={styles.adBanner}
+            onPress={handleBannerClick}
+            activeOpacity={0.8}
+          >
+            <Image
+              source={{ uri: activeBanner.imageUrl }}
+              style={styles.adImage}
+              resizeMode="contain"
+            />
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -317,23 +379,23 @@ const styles = StyleSheet.create({
   },
   adBanner: {
     backgroundColor: COLORS.CARD,
-    height: Math.min(80, height * 0.1),
+    height: Math.min(100, height * 0.12),
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: COLORS.BORDER,
-    borderStyle: 'dashed',
-    marginTop: 'auto',
+    marginTop: height * 0.02,
+    overflow: 'hidden',
     shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  adText: {
-    color: COLORS.TEXT_SECONDARY,
-    fontSize: Math.min(14, width * 0.035),
-    fontWeight: '500',
+  adImage: {
+    width: '100%',
+    height: '100%',
   },
 });

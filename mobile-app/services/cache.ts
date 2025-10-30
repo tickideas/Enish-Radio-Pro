@@ -92,4 +92,45 @@ export class CacheService {
       console.error('Error removing cache key:', error);
     }
   }
+
+  /**
+   * Get cached data with TTL check
+   */
+  static async get<T>(key: string): Promise<T | null> {
+    try {
+      const cached = await AsyncStorage.getItem(key);
+      if (!cached) return null;
+
+      const { data, timestamp, ttl } = JSON.parse(cached);
+
+      // Check if cache is expired
+      if (ttl && Date.now() - timestamp > ttl) {
+        await this.remove(key);
+        return null;
+      }
+
+      return data as T;
+    } catch (error) {
+      console.error('Error getting cached data:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Set cached data with optional TTL
+   */
+  static async set<T>(key: string, data: T, ttl?: number): Promise<void> {
+    try {
+      const cacheEntry = {
+        data,
+        timestamp: Date.now(),
+        ttl: ttl || null,
+      };
+      await AsyncStorage.setItem(key, JSON.stringify(cacheEntry));
+    } catch (error) {
+      console.error('Error setting cached data:', error);
+    }
+  }
 }
+
+export default CacheService;
