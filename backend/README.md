@@ -149,3 +149,43 @@ The API includes detailed logging and error reporting for debugging. Use `nodemo
 - Configure proper CORS origins
 - Set up monitoring and logging
 - Use process managers (PM2) for production deployment
+
+## Deployment
+
+### Deploy to Coolify
+
+The backend is fully containerized and ready for Coolify deployment. See **[COOLIFY_DEPLOYMENT.md](./COOLIFY_DEPLOYMENT.md)** for detailed instructions.
+
+**Quick Start**:
+```bash
+# Test Docker build locally
+./coolify-setup.sh
+
+# Or test full stack with docker-compose
+docker-compose up
+```
+
+**What's Included**:
+- ✅ `Dockerfile` - Multi-stage production build
+- ✅ `docker-compose.yml` - Local testing environment
+- ✅ `.dockerignore` - Optimized build context
+- ✅ `.env.coolify` - Environment variables template
+- ✅ `COOLIFY_DEPLOYMENT.md` - Complete deployment guide
+- ✅ `coolify-setup.sh` - Interactive setup helper
+
+**Key Features**:
+- Production-optimized multi-stage build
+- Health checks configured
+- Non-root user for security
+- Automatic database schema creation
+- SSL support for external databases
+- Cloudinary integration for image uploads
+
+**Next Steps**:
+1. Review `COOLIFY_DEPLOYMENT.md` for setup instructions
+2. Prepare your PostgreSQL database (Coolify managed or external)
+3. Get Cloudinary credentials for image uploads
+4. Configure environment variables in Coolify
+5. Deploy and verify the health endpoint
+
+For detailed deployment instructions, troubleshooting, and best practices, see **[COOLIFY_DEPLOYMENT.md](./COOLIFY_DEPLOYMENT.md)**.

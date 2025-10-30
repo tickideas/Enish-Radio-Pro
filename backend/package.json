@@ -10,7 +10,14 @@
     "seed": "node scripts/seedDatabase.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "test:admin": "node test-admin-interface.js",
-    "test:admin:ci": "ADMIN_TEST_URL=$ADMIN_TEST_URL TEST_EMAIL=$TEST_EMAIL TEST_PASSWORD=$TEST_PASSWORD node test-admin-interface.js"
+    "test:admin:ci": "ADMIN_TEST_URL=$ADMIN_TEST_URL TEST_EMAIL=$TEST_EMAIL TEST_PASSWORD=$TEST_PASSWORD node test-admin-interface.js",
+    "docker:build": "docker build -t enish-radio-backend .",
+    "docker:run": "docker run -p 3000:3000 --env-file .env enish-radio-backend",
+    "docker:compose:up": "docker-compose up -d",
+    "docker:compose:down": "docker-compose down",
+    "docker:compose:logs": "docker-compose logs -f backend",
+    "health-check": "./health-check.sh",
+    "health-check:prod": "API_URL=https://api.yourdomain.com ./health-check.sh"
   },
   "keywords": [],
   "author": "",

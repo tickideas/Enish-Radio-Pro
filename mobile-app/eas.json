@@ -23,13 +23,7 @@
     "production": {
       "android": {
         "track": "production",
-        "releaseStatus": "draft",
-        "changesNotSentForReview": false
-      },
-      "ios": {
-        "track": "production",
-        "releaseStatus": "draft",
-        "changesNotSentForReview": false
+        "releaseStatus": "draft"
       }
     }
   }
