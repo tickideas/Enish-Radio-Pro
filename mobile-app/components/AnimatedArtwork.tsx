@@ -189,8 +189,8 @@ export default function AnimatedArtwork({
   useEffect(() => {
     Animated.spring(tonearmValue, {
       toValue: isPlaying ? 1 : 0,
-      friction: 8,
-      tension: 40,
+      friction: 10,
+      tension: 35,
       useNativeDriver: true,
     }).start();
   }, [isPlaying, tonearmValue]);
@@ -225,12 +225,12 @@ export default function AnimatedArtwork({
 
   const tonearmRotate = tonearmValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-25deg', '0deg'], // Swings from resting position to playing position
+    outputRange: ['-45deg', '-10deg'], // Swings from resting position outside to playing position on disc
   });
 
   const tonearmTranslateX = tonearmValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, -15], // Moves inward slightly when playing
+    outputRange: [10, -25], // Moves inward onto the disc when playing
   });
 
   const reflectionRotate = reflectionValue.interpolate({
@@ -460,8 +460,8 @@ export default function AnimatedArtwork({
         style={[
           styles.tonearmContainer,
           {
-            right: size * 0.15,
-            top: size * 0.2,
+            right: -size * 0.05,
+            top: size * 0.15,
             transform: [
               { translateX: tonearmTranslateX },
               { rotate: tonearmRotate },
@@ -746,8 +746,8 @@ const styles = StyleSheet.create({
   },
   tonearmContainer: {
     position: 'absolute',
-    width: 120,
-    height: 100,
+    width: 140,
+    height: 120,
     zIndex: 10,
   },
   tonearmBase: {
@@ -757,8 +757,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    right: 0,
-    top: 0,
+    right: 20,
+    top: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.5,
@@ -801,10 +801,10 @@ const styles = StyleSheet.create({
   },
   tonearmArm: {
     position: 'absolute',
-    width: 95,
+    width: 105,
     height: 7,
-    right: 14,
-    top: 10.5,
+    right: 34,
+    top: 20.5,
     borderRadius: 3.5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 3 },
