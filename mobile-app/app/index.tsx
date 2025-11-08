@@ -139,6 +139,7 @@ export default function HomeScreen() {
                 artworkUrl={audioPlayer.metadata.artwork}
                 isPlaying={audioPlayer.isPlaying}
                 size={Math.min(width * 0.58, height * 0.28)}
+                onTogglePlay={audioPlayer.togglePlayPause}
               />
             </View>
 
