@@ -36,6 +36,7 @@ export default function AnimatedArtwork({
   const glowValue = useRef(new Animated.Value(0)).current;
   const vinylRotateValue = useRef(new Animated.Value(0)).current;
   const shineValue = useRef(new Animated.Value(0)).current;
+  const tonearmValue = useRef(new Animated.Value(0)).current; // 0 = resting, 1 = playing
 
   // Track manual rotation for interactive spin
   const lastRotation = useRef(0);
@@ -86,10 +87,14 @@ export default function AnimatedArtwork({
   // Vinyl rotation animation (when playing)
   useEffect(() => {
     if (isPlaying) {
+      // Continue from current value and add 1 for next rotation
+      const startValue = currentRotation.current / 360;
+      vinylRotateValue.setValue(startValue);
+
       // Create a looping rotation animation
       const rotateAnimation = Animated.loop(
         Animated.timing(vinylRotateValue, {
-          toValue: vinylRotateValue._value + 1,
+          toValue: startValue + 1,
           duration: 3000, // 3 seconds for one full rotation (33 RPM-ish feel)
           useNativeDriver: true,
         })
@@ -143,6 +148,16 @@ export default function AnimatedArtwork({
     return () => shineAnimation.stop();
   }, [shineValue]);
 
+  // Tonearm animation (swing in when playing, swing out when paused)
+  useEffect(() => {
+    Animated.spring(tonearmValue, {
+      toValue: isPlaying ? 1 : 0,
+      friction: 8,
+      tension: 40,
+      useNativeDriver: true,
+    }).start();
+  }, [isPlaying, tonearmValue]);
+
   // Reset image error when artwork changes
   useEffect(() => {
     if (artworkUrl) {
@@ -169,6 +184,16 @@ export default function AnimatedArtwork({
   const shineOpacity = shineValue.interpolate({
     inputRange: [0, 0.5, 1],
     outputRange: [0.1, 0.3, 0.1],
+  });
+
+  const tonearmRotate = tonearmValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['-25deg', '0deg'], // Swings from resting position to playing position
+  });
+
+  const tonearmTranslateX = tonearmValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, -15], // Moves inward slightly when playing
   });
 
   return (
@@ -281,27 +306,38 @@ export default function AnimatedArtwork({
             <View style={styles.spindleHoleInner} />
           </View>
         </View>
+      </Animated.View>
 
-        {/* Play/Pause indicator overlay (non-rotating) */}
-        {!isPlaying && (
-          <Animated.View
-            style={[
-              styles.playIndicator,
-              {
-                transform: [{ rotate: vinylRotate }].map(t => ({
-                  rotate: t.rotate.interpolate({
-                    inputRange: ['0deg', '360deg'],
-                    outputRange: ['0deg', '-360deg'], // Counter-rotate to keep it stationary
-                  }),
-                })),
-              },
-            ]}
-          >
-            <View style={styles.playIconBackground}>
-              <Ionicons name="play" size={32} color="#FFFFFF" />
-            </View>
-          </Animated.View>
-        )}
+      {/* Tonearm */}
+      <Animated.View
+        style={[
+          styles.tonearmContainer,
+          {
+            right: size * 0.15,
+            top: size * 0.2,
+            transform: [
+              { translateX: tonearmTranslateX },
+              { rotate: tonearmRotate },
+            ],
+          },
+        ]}
+        pointerEvents="none"
+      >
+        {/* Tonearm base/pivot */}
+        <View style={styles.tonearmBase}>
+          <View style={styles.tonearmPivot} />
+        </View>
+
+        {/* Tonearm arm */}
+        <View style={styles.tonearmArm}>
+          {/* Headshell (the part that holds the needle) */}
+          <View style={styles.tonearmHeadshell}>
+            {/* Cartridge */}
+            <View style={styles.tonearmCartridge} />
+            {/* Needle/Stylus */}
+            <View style={styles.tonearmNeedle} />
+          </View>
+        </View>
       </Animated.View>
     </View>
   );
@@ -430,22 +466,82 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#555',
   },
-  playIndicator: {
+  tonearmContainer: {
     position: 'absolute',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 120,
+    height: 100,
+    zIndex: 10,
   },
-  playIconBackground: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(178, 34, 52, 0.9)',
+  tonearmBase: {
+    position: 'absolute',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#2a2a2a',
     justifyContent: 'center',
     alignItems: 'center',
+    right: 0,
+    top: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    borderWidth: 2,
+    borderColor: '#1a1a1a',
+  },
+  tonearmPivot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#666',
+  },
+  tonearmArm: {
+    position: 'absolute',
+    width: 90,
+    height: 6,
+    backgroundColor: '#3a3a3a',
+    right: 12,
+    top: 9,
+    borderRadius: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowRadius: 3,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#2a2a2a',
+  },
+  tonearmHeadshell: {
+    position: 'absolute',
+    left: -2,
+    top: -4,
+    width: 20,
+    height: 14,
+    backgroundColor: '#4a4a4a',
+    borderRadius: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#333',
+  },
+  tonearmCartridge: {
+    width: 8,
+    height: 8,
+    backgroundColor: '#666',
+    borderRadius: 1,
+  },
+  tonearmNeedle: {
+    position: 'absolute',
+    bottom: -6,
+    left: 6,
+    width: 2,
+    height: 10,
+    backgroundColor: '#888',
+    borderRadius: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.5,
+    shadowRadius: 2,
   },
 });

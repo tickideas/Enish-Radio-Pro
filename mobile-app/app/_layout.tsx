@@ -319,9 +319,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
       {/* Header */}
       <View style={styles.drawerHeader}>
         <Text style={[styles.appTitle, { color: textColor }]}>{APP_CONFIG.NAME}</Text>
-        <Text style={[styles.appVersion, { color: textColor, opacity: 0.7 }]}>
-          {`Version ${APP_CONFIG.VERSION}`}
-        </Text>
+      
       </View>
 
       {/* Navigation Items */}
