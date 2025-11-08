@@ -37,6 +37,8 @@ export default function AnimatedArtwork({
   const vinylRotateValue = useRef(new Animated.Value(0)).current;
   const shineValue = useRef(new Animated.Value(0)).current;
   const tonearmValue = useRef(new Animated.Value(0)).current; // 0 = resting, 1 = playing
+  const reflectionValue = useRef(new Animated.Value(0)).current;
+  const grooveShimmerValue = useRef(new Animated.Value(0)).current;
 
   // Track manual rotation for interactive spin
   const lastRotation = useRef(0);
@@ -148,6 +150,41 @@ export default function AnimatedArtwork({
     return () => shineAnimation.stop();
   }, [shineValue]);
 
+  // Reflection animation (sweeping light effect)
+  useEffect(() => {
+    const reflectionAnimation = Animated.loop(
+      Animated.timing(reflectionValue, {
+        toValue: 1,
+        duration: 6000,
+        useNativeDriver: true,
+      })
+    );
+    reflectionAnimation.start();
+
+    return () => reflectionAnimation.stop();
+  }, [reflectionValue]);
+
+  // Groove shimmer animation (subtle iridescent effect on grooves)
+  useEffect(() => {
+    const shimmerAnimation = Animated.loop(
+      Animated.sequence([
+        Animated.timing(grooveShimmerValue, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: false,
+        }),
+        Animated.timing(grooveShimmerValue, {
+          toValue: 0,
+          duration: 3000,
+          useNativeDriver: false,
+        }),
+      ])
+    );
+    shimmerAnimation.start();
+
+    return () => shimmerAnimation.stop();
+  }, [grooveShimmerValue]);
+
   // Tonearm animation (swing in when playing, swing out when paused)
   useEffect(() => {
     Animated.spring(tonearmValue, {
@@ -196,27 +233,65 @@ export default function AnimatedArtwork({
     outputRange: [0, -15], // Moves inward slightly when playing
   });
 
+  const reflectionRotate = reflectionValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
+
+  const reflectionOpacity = reflectionValue.interpolate({
+    inputRange: [0, 0.25, 0.5, 0.75, 1],
+    outputRange: [0.05, 0.2, 0.05, 0.15, 0.05],
+  });
+
+  const grooveShimmerColor = grooveShimmerValue.interpolate({
+    inputRange: [0, 0.5, 1],
+    outputRange: ['rgba(255, 255, 255, 0.03)', 'rgba(178, 34, 52, 0.08)', 'rgba(31, 168, 160, 0.06)'],
+  });
+
   return (
     <View style={styles.container}>
-      {/* Ambient glow effect */}
+      {/* Ambient glow effect - enhanced with brand colors */}
       {isPlaying && (
-        <Animated.View
-          style={[
-            styles.glowContainer,
-            {
-              width: size + 60,
-              height: size + 60,
-              opacity: glowOpacity,
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={[COLORS.PRIMARY + '60', COLORS.YELLOW + '40', 'transparent']}
-            style={styles.gradientGlow}
-            start={{ x: 0.5, y: 0.5 }}
-            end={{ x: 1, y: 1 }}
-          />
-        </Animated.View>
+        <>
+          <Animated.View
+            style={[
+              styles.glowContainer,
+              {
+                width: size + 80,
+                height: size + 80,
+                opacity: glowOpacity,
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={[COLORS.PRIMARY + '50', COLORS.SECONDARY + '30', COLORS.YELLOW + '20', 'transparent']}
+              style={styles.gradientGlow}
+              start={{ x: 0.5, y: 0.5 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </Animated.View>
+          {/* Secondary glow layer for depth */}
+          <Animated.View
+            style={[
+              styles.glowContainer,
+              {
+                width: size + 40,
+                height: size + 40,
+                opacity: glowOpacity.interpolate({
+                  inputRange: [0.2, 0.6],
+                  outputRange: [0.4, 0.8],
+                }),
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={[COLORS.SECONDARY + '40', COLORS.PRIMARY + '30', 'transparent']}
+              style={styles.gradientGlow}
+              start={{ x: 0.3, y: 0.3 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </Animated.View>
+        </>
       )}
 
       {/* Main vinyl container */}
@@ -233,22 +308,57 @@ export default function AnimatedArtwork({
       >
         {/* Vinyl disc background (black) */}
         <View style={styles.vinylDisc}>
-          {/* Vinyl grooves - multiple concentric circles */}
-          {[...Array(20)].map((_, i) => (
-            <View
+          {/* Radial gradient for depth */}
+          <View style={styles.vinylDepthGradient}>
+            <LinearGradient
+              colors={['#2a2a2a', '#1a1a1a', '#0a0a0a', '#000000']}
+              style={styles.depthGradientInner}
+              start={{ x: 0.5, y: 0.5 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </View>
+
+          {/* Enhanced vinyl grooves with shimmer effect */}
+          {[...Array(30)].map((_, i) => (
+            <Animated.View
               key={i}
               style={[
                 styles.vinylGroove,
                 {
-                  width: `${95 - i * 4}%`,
-                  height: `${95 - i * 4}%`,
-                  opacity: 0.15 + (i % 3) * 0.05,
+                  width: `${96 - i * 2.8}%`,
+                  height: `${96 - i * 2.8}%`,
+                  borderColor: grooveShimmerColor,
+                  opacity: 0.2 + (i % 4) * 0.05,
                 },
               ]}
             />
           ))}
 
-          {/* Vinyl shine effect */}
+          {/* Primary reflection sweep */}
+          <Animated.View
+            style={[
+              styles.vinylReflection,
+              {
+                opacity: reflectionOpacity,
+                transform: [{ rotate: reflectionRotate }],
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={[
+                'transparent',
+                COLORS.PRIMARY + '15',
+                COLORS.SECONDARY + '20',
+                COLORS.YELLOW + '10',
+                'transparent',
+              ]}
+              style={styles.reflectionGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+            />
+          </Animated.View>
+
+          {/* Secondary shine effect */}
           <Animated.View
             style={[
               styles.vinylShine,
@@ -259,18 +369,47 @@ export default function AnimatedArtwork({
             ]}
           >
             <LinearGradient
-              colors={['transparent', 'rgba(255, 255, 255, 0.15)', 'transparent']}
+              colors={[
+                'transparent',
+                'rgba(255, 255, 255, 0.1)',
+                'rgba(255, 255, 255, 0.2)',
+                'rgba(255, 255, 255, 0.1)',
+                'transparent',
+              ]}
               style={styles.shineGradient}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
             />
           </Animated.View>
+
+          {/* Edge highlight for 3D effect */}
+          <View style={styles.vinylEdgeHighlight} />
         </View>
 
         {/* Center label with artwork */}
         <View style={[styles.centerLabel, { width: size * 0.45, height: size * 0.45 }]}>
+          {/* Decorative outer ring with brand colors */}
+          <View style={styles.labelOuterRing}>
+            <LinearGradient
+              colors={[COLORS.PRIMARY, COLORS.ACCENT, COLORS.SECONDARY, COLORS.YELLOW, COLORS.PRIMARY]}
+              style={styles.labelRingGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </View>
+
           {/* Label background */}
           <View style={styles.labelBackground}>
+            {/* Subtle gradient overlay for depth */}
+            <View style={styles.labelGradientOverlay}>
+              <LinearGradient
+                colors={['rgba(253, 252, 251, 0.95)', 'rgba(255, 248, 240, 0.98)', 'rgba(253, 252, 251, 1)']}
+                style={styles.labelGradientInner}
+                start={{ x: 0.5, y: 0.5 }}
+                end={{ x: 1, y: 1 }}
+              />
+            </View>
+
             {artworkUrl && !imageError ? (
               <>
                 <Image
@@ -301,14 +440,22 @@ export default function AnimatedArtwork({
             )}
           </View>
 
-          {/* Center spindle hole */}
+          {/* Center spindle hole with metallic effect */}
           <View style={styles.spindleHole}>
-            <View style={styles.spindleHoleInner} />
+            <LinearGradient
+              colors={['#4a4a4a', '#2a2a2a', '#1a1a1a']}
+              style={styles.spindleHoleGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+            <View style={styles.spindleHoleInner}>
+              <View style={styles.spindleHighlight} />
+            </View>
           </View>
         </View>
       </Animated.View>
 
-      {/* Tonearm */}
+      {/* Tonearm - Enhanced with metallic effects */}
       <Animated.View
         style={[
           styles.tonearmContainer,
@@ -323,19 +470,63 @@ export default function AnimatedArtwork({
         ]}
         pointerEvents="none"
       >
-        {/* Tonearm base/pivot */}
+        {/* Tonearm base/pivot with gradient */}
         <View style={styles.tonearmBase}>
-          <View style={styles.tonearmPivot} />
+          <LinearGradient
+            colors={['#3a3a3a', '#2a2a2a', '#1a1a1a']}
+            style={styles.tonearmBaseGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+          />
+          <View style={styles.tonearmPivot}>
+            <LinearGradient
+              colors={[COLORS.ACCENT, COLORS.PRIMARY]}
+              style={styles.tonearmPivotGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </View>
+          {/* Highlight for metallic effect */}
+          <View style={styles.tonearmBaseHighlight} />
         </View>
 
-        {/* Tonearm arm */}
+        {/* Tonearm arm with metallic gradient */}
         <View style={styles.tonearmArm}>
+          <LinearGradient
+            colors={['#4a4a4a', '#3a3a3a', '#2a2a2a']}
+            style={styles.tonearmArmGradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+          />
+          {/* Metallic shine on arm */}
+          <View style={styles.tonearmArmShine} />
+
           {/* Headshell (the part that holds the needle) */}
           <View style={styles.tonearmHeadshell}>
-            {/* Cartridge */}
-            <View style={styles.tonearmCartridge} />
-            {/* Needle/Stylus */}
-            <View style={styles.tonearmNeedle} />
+            <LinearGradient
+              colors={['#5a5a5a', '#4a4a4a', '#3a3a3a']}
+              style={styles.tonearmHeadshellGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+            {/* Cartridge with brand color accent */}
+            <View style={styles.tonearmCartridge}>
+              <LinearGradient
+                colors={[COLORS.PRIMARY, COLORS.SECONDARY]}
+                style={styles.tonearmCartridgeGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              />
+            </View>
+            {/* Needle/Stylus with metallic effect */}
+            <View style={styles.tonearmNeedle}>
+              <LinearGradient
+                colors={['#aaa', '#888', '#666']}
+                style={styles.tonearmNeedleGradient}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+              />
+            </View>
           </View>
         </View>
       </Animated.View>
@@ -364,28 +555,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     position: 'relative',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 20,
-    elevation: 15,
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.6,
+    shadowRadius: 24,
+    elevation: 20,
   },
   vinylDisc: {
     position: 'absolute',
     width: '100%',
     height: '100%',
     borderRadius: 1000,
-    backgroundColor: '#1a1a1a', // Dark vinyl black
+    backgroundColor: '#0a0a0a',
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
-    borderWidth: 2,
-    borderColor: '#0a0a0a',
+    borderWidth: 3,
+    borderColor: '#000000',
+  },
+  vinylDepthGradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000,
+    overflow: 'hidden',
+  },
+  depthGradientInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000,
   },
   vinylGroove: {
     position: 'absolute',
     borderRadius: 1000,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 0.5,
+  },
+  vinylReflection: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000,
+    overflow: 'hidden',
+  },
+  reflectionGradient: {
+    width: '200%',
+    height: '100%',
+    position: 'absolute',
+    top: 0,
+    left: '-50%',
   },
   vinylShine: {
     position: 'absolute',
@@ -401,26 +617,67 @@ const styles = StyleSheet.create({
     top: '-50%',
     left: '-50%',
   },
+  vinylEdgeHighlight: {
+    position: 'absolute',
+    width: '98%',
+    height: '98%',
+    borderRadius: 1000,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.03)',
+    borderTopColor: 'rgba(255, 255, 255, 0.08)',
+    borderLeftColor: 'rgba(255, 255, 255, 0.05)',
+  },
   centerLabel: {
     borderRadius: 1000,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: COLORS.BACKGROUND,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.6,
+    shadowRadius: 12,
+    elevation: 15,
+    overflow: 'visible',
+    position: 'relative',
+  },
+  labelOuterRing: {
+    position: 'absolute',
+    width: '106%',
+    height: '106%',
+    borderRadius: 1000,
     overflow: 'hidden',
-    borderWidth: 3,
-    borderColor: '#e0e0e0',
+    shadowColor: COLORS.PRIMARY,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  labelRingGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000,
   },
   labelBackground: {
+    width: '92%',
+    height: '92%',
+    borderRadius: 1000,
+    overflow: 'hidden',
+    backgroundColor: COLORS.BACKGROUND,
+    borderWidth: 2,
+    borderColor: COLORS.BORDER,
+  },
+  labelGradientOverlay: {
+    position: 'absolute',
     width: '100%',
     height: '100%',
     borderRadius: 1000,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF',
+    zIndex: -1,
+  },
+  labelGradientInner: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000,
   },
   artworkImage: {
     width: '100%',
@@ -452,19 +709,40 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#1a1a1a',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.8,
+    shadowRadius: 4,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  spindleHoleGradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 20,
   },
   spindleHoleInner: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     backgroundColor: '#0a0a0a',
     borderWidth: 1,
-    borderColor: '#555',
+    borderColor: '#2a2a2a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  spindleHighlight: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    position: 'absolute',
+    top: 3,
+    left: 3,
   },
   tonearmContainer: {
     position: 'absolute',
@@ -474,74 +752,138 @@ const styles = StyleSheet.create({
   },
   tonearmBase: {
     position: 'absolute',
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#2a2a2a',
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     right: 0,
     top: 0,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    borderWidth: 2,
-    borderColor: '#1a1a1a',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    elevation: 8,
+    overflow: 'hidden',
+  },
+  tonearmBaseGradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
+  },
+  tonearmBaseHighlight: {
+    position: 'absolute',
+    top: 2,
+    left: 3,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
   },
   tonearmPivot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#666',
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    shadowColor: COLORS.PRIMARY,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  tonearmPivotGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 6,
   },
   tonearmArm: {
     position: 'absolute',
-    width: 90,
-    height: 6,
-    backgroundColor: '#3a3a3a',
-    right: 12,
-    top: 9,
-    borderRadius: 3,
+    width: 95,
+    height: 7,
+    right: 14,
+    top: 10.5,
+    borderRadius: 3.5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  tonearmArmGradient: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 3.5,
+  },
+  tonearmArmShine: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 2,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderTopLeftRadius: 3.5,
+    borderTopRightRadius: 3.5,
+  },
+  tonearmHeadshell: {
+    position: 'absolute',
+    left: -2,
+    top: -5,
+    width: 22,
+    height: 16,
+    borderRadius: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.4,
     shadowRadius: 3,
     elevation: 4,
-    borderWidth: 1,
-    borderColor: '#2a2a2a',
   },
-  tonearmHeadshell: {
+  tonearmHeadshellGradient: {
     position: 'absolute',
-    left: -2,
-    top: -4,
-    width: 20,
-    height: 14,
-    backgroundColor: '#4a4a4a',
+    width: '100%',
+    height: '100%',
     borderRadius: 2,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#333',
   },
   tonearmCartridge: {
-    width: 8,
-    height: 8,
-    backgroundColor: '#666',
-    borderRadius: 1,
+    width: 10,
+    height: 10,
+    borderRadius: 2,
+    overflow: 'hidden',
+    shadowColor: COLORS.SECONDARY,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  tonearmCartridgeGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 2,
   },
   tonearmNeedle: {
     position: 'absolute',
-    bottom: -6,
+    bottom: -8,
     left: 6,
-    width: 2,
-    height: 10,
-    backgroundColor: '#888',
-    borderRadius: 1,
+    width: 3,
+    height: 12,
+    borderRadius: 1.5,
+    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.5,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.6,
+    shadowRadius: 3,
+    elevation: 3,
+  },
+  tonearmNeedleGradient: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 1.5,
   },
 });
