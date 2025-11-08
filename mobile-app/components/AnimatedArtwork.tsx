@@ -6,6 +6,8 @@ import {
   Animated,
   ActivityIndicator,
   Dimensions,
+  PanResponder,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/radio';
@@ -17,90 +19,100 @@ interface AnimatedArtworkProps {
   artworkUrl?: string;
   isPlaying: boolean;
   size?: number;
+  onTogglePlay?: () => void;
 }
 
 export default function AnimatedArtwork({
   artworkUrl,
   isPlaying,
   size = Math.min(width * 0.5, height * 0.3),
+  onTogglePlay,
 }: AnimatedArtworkProps) {
   const [imageLoading, setImageLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   // Animation values
   const rotateValue = useRef(new Animated.Value(0)).current;
-  const pulseValue = useRef(new Animated.Value(1)).current;
   const glowValue = useRef(new Animated.Value(0)).current;
+  const vinylRotateValue = useRef(new Animated.Value(0)).current;
+  const shineValue = useRef(new Animated.Value(0)).current;
 
-  // Ripple animation values
-  const ripple1 = useRef(new Animated.Value(0)).current;
-  const ripple2 = useRef(new Animated.Value(0)).current;
-  const ripple3 = useRef(new Animated.Value(0)).current;
+  // Track manual rotation for interactive spin
+  const lastRotation = useRef(0);
+  const currentRotation = useRef(0);
 
-  // Rotation animation
+  // Pan responder for interactive vinyl spinning
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        // Stop automatic rotation when user touches
+        lastRotation.current = currentRotation.current;
+      },
+      onPanResponderMove: (evt, gestureState) => {
+        // Calculate rotation based on finger movement
+        const { dx, dy, moveX, moveY } = gestureState;
+        const centerX = width / 2;
+        const centerY = height * 0.25; // Approximate center of vinyl
+
+        // Calculate angle of movement
+        const angle = Math.atan2(moveY - centerY, moveX - centerX);
+        const rotation = (angle * 180) / Math.PI;
+
+        // Update rotation
+        currentRotation.current = lastRotation.current + dx * 0.5;
+        vinylRotateValue.setValue(currentRotation.current / 360);
+      },
+      onPanResponderRelease: (evt, gestureState) => {
+        // Calculate velocity to give momentum effect
+        const velocity = Math.sqrt(
+          gestureState.vx * gestureState.vx + gestureState.vy * gestureState.vy
+        );
+
+        if (velocity < 0.5) {
+          // If slow movement, treat as a tap to toggle play
+          if (onTogglePlay) {
+            onTogglePlay();
+          }
+        }
+
+        // Resume automatic rotation if playing
+        lastRotation.current = currentRotation.current;
+      },
+    })
+  ).current;
+
+  // Vinyl rotation animation (when playing)
   useEffect(() => {
     if (isPlaying) {
+      // Create a looping rotation animation
       const rotateAnimation = Animated.loop(
-        Animated.timing(rotateValue, {
-          toValue: 1,
-          duration: 20000, // 20 seconds for one full rotation
+        Animated.timing(vinylRotateValue, {
+          toValue: vinylRotateValue._value + 1,
+          duration: 3000, // 3 seconds for one full rotation (33 RPM-ish feel)
           useNativeDriver: true,
         })
       );
       rotateAnimation.start();
 
       return () => rotateAnimation.stop();
-    } else {
-      Animated.timing(rotateValue, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: true,
-      }).start();
     }
-  }, [isPlaying, rotateValue]);
+  }, [isPlaying, vinylRotateValue]);
 
-  // Pulse animation
-  useEffect(() => {
-    if (isPlaying) {
-      const pulseAnimation = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseValue, {
-            toValue: 1.05,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseValue, {
-            toValue: 1,
-            duration: 1000,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-      pulseAnimation.start();
-
-      return () => pulseAnimation.stop();
-    } else {
-      Animated.timing(pulseValue, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [isPlaying, pulseValue]);
-
-  // Glow animation
+  // Glow animation (when playing)
   useEffect(() => {
     if (isPlaying) {
       const glowAnimation = Animated.loop(
         Animated.sequence([
           Animated.timing(glowValue, {
             toValue: 1,
-            duration: 1500,
+            duration: 2000,
             useNativeDriver: false,
           }),
           Animated.timing(glowValue, {
             toValue: 0,
-            duration: 1500,
+            duration: 2000,
             useNativeDriver: false,
           }),
         ])
@@ -117,62 +129,19 @@ export default function AnimatedArtwork({
     }
   }, [isPlaying, glowValue]);
 
-  // Ripple animations
+  // Shine animation (continuous light reflection)
   useEffect(() => {
-    if (isPlaying) {
-      const createRippleAnimation = (rippleValue: Animated.Value, delay: number) => {
-        return Animated.loop(
-          Animated.sequence([
-            Animated.delay(delay),
-            Animated.parallel([
-              Animated.timing(rippleValue, {
-                toValue: 1,
-                duration: 2000,
-                useNativeDriver: true,
-              }),
-            ]),
-            Animated.timing(rippleValue, {
-              toValue: 0,
-              duration: 0,
-              useNativeDriver: true,
-            }),
-          ])
-        );
-      };
+    const shineAnimation = Animated.loop(
+      Animated.timing(shineValue, {
+        toValue: 1,
+        duration: 4000,
+        useNativeDriver: true,
+      })
+    );
+    shineAnimation.start();
 
-      const ripple1Animation = createRippleAnimation(ripple1, 0);
-      const ripple2Animation = createRippleAnimation(ripple2, 600);
-      const ripple3Animation = createRippleAnimation(ripple3, 1200);
-
-      ripple1Animation.start();
-      ripple2Animation.start();
-      ripple3Animation.start();
-
-      return () => {
-        ripple1Animation.stop();
-        ripple2Animation.stop();
-        ripple3Animation.stop();
-      };
-    } else {
-      Animated.parallel([
-        Animated.timing(ripple1, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ripple2, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(ripple3, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
-  }, [isPlaying, ripple1, ripple2, ripple3]);
+    return () => shineAnimation.stop();
+  }, [shineValue]);
 
   // Reset image error when artwork changes
   useEffect(() => {
@@ -182,111 +151,42 @@ export default function AnimatedArtwork({
     }
   }, [artworkUrl]);
 
-  const rotate = rotateValue.interpolate({
+  const vinylRotate = vinylRotateValue.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
   });
 
   const glowOpacity = glowValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.8],
+    outputRange: [0.2, 0.6],
   });
 
-  const glowScale = glowValue.interpolate({
+  const shineRotate = shineValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [1, 1.15],
+    outputRange: ['0deg', '360deg'],
   });
 
-  // Ripple interpolations
-  const ripple1Scale = ripple1.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.4],
-  });
-
-  const ripple1Opacity = ripple1.interpolate({
+  const shineOpacity = shineValue.interpolate({
     inputRange: [0, 0.5, 1],
-    outputRange: [0.6, 0.3, 0],
-  });
-
-  const ripple2Scale = ripple2.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.4],
-  });
-
-  const ripple2Opacity = ripple2.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.6, 0.3, 0],
-  });
-
-  const ripple3Scale = ripple3.interpolate({
-    inputRange: [0, 1],
-    outputRange: [1, 1.4],
-  });
-
-  const ripple3Opacity = ripple3.interpolate({
-    inputRange: [0, 0.5, 1],
-    outputRange: [0.6, 0.3, 0],
+    outputRange: [0.1, 0.3, 0.1],
   });
 
   return (
     <View style={styles.container}>
-      {/* Ripple effects */}
-      {isPlaying && (
-        <>
-          <Animated.View
-            style={[
-              styles.ripple,
-              {
-                width: size * 1.1,
-                height: size * 1.1,
-                borderRadius: size * 0.55,
-                opacity: ripple1Opacity,
-                transform: [{ scale: ripple1Scale }],
-              },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.ripple,
-              {
-                width: size * 1.1,
-                height: size * 1.1,
-                borderRadius: size * 0.55,
-                opacity: ripple2Opacity,
-                transform: [{ scale: ripple2Scale }],
-              },
-            ]}
-          />
-          <Animated.View
-            style={[
-              styles.ripple,
-              {
-                width: size * 1.1,
-                height: size * 1.1,
-                borderRadius: size * 0.55,
-                opacity: ripple3Opacity,
-                transform: [{ scale: ripple3Scale }],
-              },
-            ]}
-          />
-        </>
-      )}
-
-      {/* Animated glow effect */}
+      {/* Ambient glow effect */}
       {isPlaying && (
         <Animated.View
           style={[
             styles.glowContainer,
             {
-              width: size + 40,
-              height: size + 40,
+              width: size + 60,
+              height: size + 60,
               opacity: glowOpacity,
-              transform: [{ scale: glowScale }],
             },
           ]}
         >
           <LinearGradient
-            colors={[COLORS.PRIMARY + '40', COLORS.PRIMARY + '10', 'transparent']}
+            colors={[COLORS.PRIMARY + '60', COLORS.YELLOW + '40', 'transparent']}
             style={styles.gradientGlow}
             start={{ x: 0.5, y: 0.5 }}
             end={{ x: 1, y: 1 }}
@@ -294,68 +194,114 @@ export default function AnimatedArtwork({
         </Animated.View>
       )}
 
-      {/* Main artwork container with rotation and pulse */}
+      {/* Main vinyl container */}
       <Animated.View
+        {...panResponder.panHandlers}
         style={[
-          styles.artworkContainer,
+          styles.vinylContainer,
           {
             width: size,
             height: size,
-            transform: [{ rotate }, { scale: pulseValue }],
+            transform: [{ rotate: vinylRotate }],
           },
         ]}
       >
-        {/* Border rings for visual interest */}
-        <View style={[styles.borderRing, styles.outerRing]} />
-        <View style={[styles.borderRing, styles.innerRing]} />
+        {/* Vinyl disc background (black) */}
+        <View style={styles.vinylDisc}>
+          {/* Vinyl grooves - multiple concentric circles */}
+          {[...Array(20)].map((_, i) => (
+            <View
+              key={i}
+              style={[
+                styles.vinylGroove,
+                {
+                  width: `${95 - i * 4}%`,
+                  height: `${95 - i * 4}%`,
+                  opacity: 0.15 + (i % 3) * 0.05,
+                },
+              ]}
+            />
+          ))}
 
-        {/* Artwork content */}
-        <View style={styles.artworkContent}>
-          {artworkUrl && !imageError ? (
-            <>
-              <Image
-                source={{ uri: artworkUrl }}
-                style={styles.artworkImage}
-                resizeMode="cover"
-                onLoad={() => setImageLoading(false)}
-                onLoadStart={() => setImageLoading(true)}
-                onError={() => {
-                  setImageError(true);
-                  setImageLoading(false);
-                }}
-              />
-              {imageLoading && (
-                <View style={styles.loadingOverlay}>
-                  <Image
-                    source={require('@/assets/images/icon.png')}
-                    style={styles.loadingPlaceholder}
-                    resizeMode="contain"
-                  />
-                  <ActivityIndicator size="large" color={COLORS.PRIMARY} style={styles.loadingSpinner} />
-                </View>
-              )}
-            </>
-          ) : (
-            <View style={styles.placeholderContainer}>
-              <Image
-                source={require('@/assets/images/icon.png')}
-                style={styles.placeholderImage}
-                resizeMode="contain"
-              />
-              {/* Small pulsing indicator when playing */}
-              {isPlaying && (
-                <Animated.View
-                  style={[
-                    styles.playingDot,
-                    {
-                      opacity: glowValue,
-                    },
-                  ]}
-                />
-              )}
-            </View>
-          )}
+          {/* Vinyl shine effect */}
+          <Animated.View
+            style={[
+              styles.vinylShine,
+              {
+                opacity: shineOpacity,
+                transform: [{ rotate: shineRotate }],
+              },
+            ]}
+          >
+            <LinearGradient
+              colors={['transparent', 'rgba(255, 255, 255, 0.15)', 'transparent']}
+              style={styles.shineGradient}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            />
+          </Animated.View>
         </View>
+
+        {/* Center label with artwork */}
+        <View style={[styles.centerLabel, { width: size * 0.45, height: size * 0.45 }]}>
+          {/* Label background */}
+          <View style={styles.labelBackground}>
+            {artworkUrl && !imageError ? (
+              <>
+                <Image
+                  source={{ uri: artworkUrl }}
+                  style={styles.artworkImage}
+                  resizeMode="cover"
+                  onLoad={() => setImageLoading(false)}
+                  onLoadStart={() => setImageLoading(true)}
+                  onError={() => {
+                    setImageError(true);
+                    setImageLoading(false);
+                  }}
+                />
+                {imageLoading && (
+                  <View style={styles.loadingOverlay}>
+                    <ActivityIndicator size="large" color={COLORS.PRIMARY} />
+                  </View>
+                )}
+              </>
+            ) : (
+              <View style={styles.placeholderContainer}>
+                <Image
+                  source={require('@/assets/images/icon.png')}
+                  style={styles.placeholderImage}
+                  resizeMode="contain"
+                />
+              </View>
+            )}
+          </View>
+
+          {/* Center spindle hole */}
+          <View style={styles.spindleHole}>
+            <View style={styles.spindleHoleInner} />
+          </View>
+        </View>
+
+        {/* Play/Pause indicator overlay (non-rotating) */}
+        {!isPlaying && (
+          <Animated.View
+            style={[
+              styles.playIndicator,
+              {
+                transform: [{ rotate: vinylRotate }].map(t => ({
+                  rotate: t.rotate.interpolate({
+                    inputRange: ['0deg', '360deg'],
+                    outputRange: ['0deg', '-360deg'], // Counter-rotate to keep it stationary
+                  }),
+                })),
+              },
+            ]}
+          >
+            <View style={styles.playIconBackground}>
+              <Ionicons name="play" size={32} color="#FFFFFF" />
+            </View>
+          </Animated.View>
+        )}
       </Animated.View>
     </View>
   );
@@ -365,12 +311,6 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  ripple: {
-    position: 'absolute',
-    borderWidth: 8,
-    borderColor: 'rgba(255, 255, 255, 0.4)',
-    backgroundColor: 'transparent',
   },
   glowContainer: {
     position: 'absolute',
@@ -382,47 +322,73 @@ const styles = StyleSheet.create({
     height: '100%',
     borderRadius: 1000,
   },
-  artworkContainer: {
-    borderRadius: 1000, // Fully circular
-    backgroundColor: '#FFFFFF', // White background
+  vinylContainer: {
+    borderRadius: 1000,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: COLORS.PRIMARY,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
-    shadowRadius: 16,
-    elevation: 10,
-    overflow: 'hidden',
     position: 'relative',
-    borderWidth: 3,
-    borderColor: '#FFFFFF',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 15,
   },
-  borderRing: {
+  vinylDisc: {
+    position: 'absolute',
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000,
+    backgroundColor: '#1a1a1a', // Dark vinyl black
+    justifyContent: 'center',
+    alignItems: 'center',
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#0a0a0a',
+  },
+  vinylGroove: {
     position: 'absolute',
     borderRadius: 1000,
-    borderWidth: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
   },
-  outerRing: {
-    width: '97%',
-    height: '97%',
-    borderColor: COLORS.PRIMARY + '25',
-  },
-  innerRing: {
-    width: '92%',
-    height: '92%',
-    borderColor: COLORS.SECONDARY + '20',
-  },
-  artworkContent: {
+  vinylShine: {
+    position: 'absolute',
     width: '100%',
     height: '100%',
     borderRadius: 1000,
     overflow: 'hidden',
-    backgroundColor: '#FFFFFF', // White background for artwork
+  },
+  shineGradient: {
+    width: '200%',
+    height: '200%',
+    position: 'absolute',
+    top: '-50%',
+    left: '-50%',
+  },
+  centerLabel: {
+    borderRadius: 1000,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 10,
+    overflow: 'hidden',
+    borderWidth: 3,
+    borderColor: '#e0e0e0',
+  },
+  labelBackground: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 1000,
+    overflow: 'hidden',
+    backgroundColor: '#FFFFFF',
   },
   artworkImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#FFFFFF', // White background behind the image
   },
   loadingOverlay: {
     position: 'absolute',
@@ -433,14 +399,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.95)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  loadingPlaceholder: {
-    width: '60%',
-    height: '60%',
-    opacity: 0.3,
-  },
-  loadingSpinner: {
-    position: 'absolute',
   },
   placeholderContainer: {
     width: '100%',
@@ -453,13 +411,41 @@ const styles = StyleSheet.create({
     width: '70%',
     height: '70%',
   },
-  playingDot: {
+  spindleHole: {
     position: 'absolute',
-    top: '45%',
-    right: '35%',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: COLORS.PRIMARY,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#1a1a1a',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#333',
+  },
+  spindleHoleInner: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#0a0a0a',
+    borderWidth: 1,
+    borderColor: '#555',
+  },
+  playIndicator: {
+    position: 'absolute',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  playIconBackground: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: 'rgba(178, 34, 52, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 8,
   },
 });
