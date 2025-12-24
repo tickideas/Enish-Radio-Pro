@@ -225,12 +225,17 @@ export default function AnimatedArtwork({
 
   const tonearmRotate = tonearmValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-45deg', '-10deg'], // Swings from resting position outside to playing position on disc
+    outputRange: ['-75deg', '-15deg'], // Much more dramatic swing from far outside position
   });
 
   const tonearmTranslateX = tonearmValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [10, -25], // Moves inward onto the disc when playing
+    outputRange: [35, -40], // More dramatic inward movement
+  });
+
+  const tonearmTranslateY = tonearmValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [12, -15], // Dramatic upward movement as it swings in
   });
 
   const reflectionRotate = reflectionValue.interpolate({
@@ -248,8 +253,84 @@ export default function AnimatedArtwork({
     outputRange: ['rgba(255, 255, 255, 0.03)', 'rgba(178, 34, 52, 0.08)', 'rgba(31, 168, 160, 0.06)'],
   });
 
+  // Dynamic turntable base styles
+  const dynamicStyles = {
+    turntableBase: {
+      position: 'absolute' as const,
+      width: size + 60,
+      height: size + 60,
+      borderRadius: (size + 60) / 2,
+      justifyContent: 'center' as const,
+      alignItems: 'center' as const,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.4,
+      shadowRadius: 20,
+      elevation: 15,
+      zIndex: -5,
+    },
+    turntableBaseGradient: {
+      position: 'absolute' as const,
+      width: '100%',
+      height: '100%',
+      borderRadius: (size + 60) / 2,
+    },
+    woodGrainOverlay: {
+      position: 'absolute' as const,
+      width: '100%',
+      height: '100%',
+      borderRadius: (size + 60) / 2,
+      overflow: 'hidden' as const,
+    },
+    woodGrain: {
+      position: 'absolute' as const,
+      left: '15%',
+      right: '15%',
+      height: 2,
+      backgroundColor: '#654321',
+      borderRadius: 1,
+    },
+    turntableBaseEdge: {
+      position: 'absolute' as const,
+      width: '95%',
+      height: '95%',
+      borderRadius: (size + 60) / 2,
+      borderWidth: 2,
+      borderColor: 'rgba(255, 255, 255, 0.1)',
+      borderTopColor: 'rgba(255, 255, 255, 0.2)',
+      borderLeftColor: 'rgba(255, 255, 255, 0.15)',
+    },
+  };
+
   return (
     <View style={styles.container}>
+      {/* Realistic Turntable Base */}
+      <View style={dynamicStyles.turntableBase}>
+        <LinearGradient
+          colors={['#8B4513', '#A0522D', '#8B4513', '#654321']}
+          style={dynamicStyles.turntableBaseGradient}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+        />
+        {/* Wood grain effect */}
+        <View style={dynamicStyles.woodGrainOverlay}>
+          {[...Array(8)].map((_, i) => (
+            <View
+              key={i}
+              style={[
+                dynamicStyles.woodGrain,
+                {
+                  top: `${15 + (i * 10)}%`,
+                  opacity: 0.1 + (i % 3) * 0.05,
+                },
+              ]}
+            />
+          ))}
+        </View>
+        {/* Base edge highlight */}
+        <View style={dynamicStyles.turntableBaseEdge} />
+      </View>
+
       {/* Ambient glow effect - enhanced with brand colors */}
       {isPlaying && (
         <>
@@ -464,6 +545,7 @@ export default function AnimatedArtwork({
             top: size * 0.15,
             transform: [
               { translateX: tonearmTranslateX },
+              { translateY: tonearmTranslateY },
               { rotate: tonearmRotate },
             ],
           },
@@ -539,6 +621,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+
   glowContainer: {
     position: 'absolute',
     borderRadius: 1000,
