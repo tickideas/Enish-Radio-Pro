@@ -34,7 +34,8 @@
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
         "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS"
       ]
     },
     "web": {
@@ -43,6 +44,7 @@
     },
     "plugins": [
       "expo-router",
+      "./plugins/withAndroidBackgroundAudio",
       [
         "expo-splash-screen",
         {
@@ -58,10 +60,12 @@
       [
         "expo-av",
         {
+          "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone for audio features.",
           "android": {
             "allowsBackgroundPlayback": true,
             "audioFocus": true,
-            "notificationIcon": "./assets/images/icon.png"
+            "useForegroundService": true,
+            "foregroundServiceType": "mediaPlayback"
           }
         }
       ]

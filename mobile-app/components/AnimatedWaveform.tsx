@@ -1,8 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
+import { View, StyleSheet, Animated } from 'react-native';
 import { COLORS } from '@/constants/radio';
-
-const { width } = Dimensions.get('window');
 
 interface AnimatedWaveformProps {
   isPlaying: boolean;
@@ -14,7 +12,6 @@ interface AnimatedWaveformProps {
   multiColor?: boolean;
 }
 
-// Brand colors from the Enish Radio logo equalizer
 const EQUALIZER_COLORS = [
   COLORS.EQUALIZER_RED,
   COLORS.EQUALIZER_TEAL,
@@ -24,83 +21,79 @@ const EQUALIZER_COLORS = [
 
 export default function AnimatedWaveform({
   isPlaying,
-  barCount = 30,
-  barWidth = 2.5,
-  barSpacing = 2,
-  minHeight = 3,
-  maxHeight = 40,
+  barCount = 12,
+  barWidth = 4,
+  barSpacing = 3,
+  minHeight = 4,
+  maxHeight = 36,
   multiColor = true,
 }: AnimatedWaveformProps) {
-  const animatedValues = useRef(
-    Array.from({ length: barCount }, () => new Animated.Value(minHeight))
-  ).current;
+  const progress = useRef(new Animated.Value(0)).current;
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   useEffect(() => {
     if (isPlaying) {
-      // Create staggered animations for each bar
-      const animations = animatedValues.map((animValue, index) => {
-        const randomDuration = 300 + Math.random() * 400; // 300-700ms
-        const delay = index * 30; // Stagger by 30ms
-
-        return Animated.loop(
-          Animated.sequence([
-            Animated.timing(animValue, {
-              toValue: minHeight + Math.random() * (maxHeight - minHeight),
-              duration: randomDuration,
-              delay: delay,
-              useNativeDriver: false,
-            }),
-            Animated.timing(animValue, {
-              toValue: minHeight + Math.random() * (maxHeight - minHeight) * 0.5,
-              duration: randomDuration,
-              useNativeDriver: false,
-            }),
-          ])
-        );
-      });
-
-      // Start all animations
-      Animated.parallel(animations).start();
-    } else {
-      // Reset to minimum height when not playing
-      Animated.parallel(
-        animatedValues.map((animValue) =>
-          Animated.timing(animValue, {
-            toValue: minHeight,
-            duration: 300,
+      animationRef.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(progress, {
+            toValue: 1,
+            duration: 800,
             useNativeDriver: false,
-          })
-        )
-      ).start();
+          }),
+          Animated.timing(progress, {
+            toValue: 0,
+            duration: 800,
+            useNativeDriver: false,
+          }),
+        ])
+      );
+      animationRef.current.start();
+    } else {
+      animationRef.current?.stop();
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: false,
+      }).start();
     }
-  }, [isPlaying, animatedValues, minHeight, maxHeight]);
 
-  return (
-    <View style={styles.container}>
-      {animatedValues.map((animValue, index) => {
-        // Cycle through brand colors for multi-color effect
-        const barColor = multiColor
-          ? EQUALIZER_COLORS[index % EQUALIZER_COLORS.length]
-          : COLORS.PRIMARY;
+    return () => {
+      animationRef.current?.stop();
+      progress.stopAnimation();
+    };
+  }, [isPlaying, progress]);
 
-        return (
-          <Animated.View
-            key={index}
-            style={[
-              styles.bar,
-              {
-                width: barWidth,
-                height: animValue,
-                backgroundColor: barColor,
-                marginHorizontal: barSpacing / 2,
-                opacity: isPlaying ? 0.8 + Math.random() * 0.2 : 0.4,
-              },
-            ]}
-          />
-        );
-      })}
-    </View>
-  );
+  const bars = Array.from({ length: barCount }, (_, i) => {
+    const phase = (i / barCount) * Math.PI;
+    const multiplier = 0.4 + Math.sin(phase) * 0.6;
+
+    const barHeight = progress.interpolate({
+      inputRange: [0, 1],
+      outputRange: [minHeight, minHeight + (maxHeight - minHeight) * multiplier],
+    });
+
+    const barColor = multiColor
+      ? EQUALIZER_COLORS[i % EQUALIZER_COLORS.length]
+      : COLORS.PRIMARY;
+
+    return (
+      <Animated.View
+        key={i}
+        style={[
+          styles.bar,
+          {
+            width: barWidth,
+            height: barHeight,
+            backgroundColor: barColor,
+            marginHorizontal: barSpacing / 2,
+            opacity: isPlaying ? 0.9 : 0.4,
+          },
+        ]}
+      />
+    );
+  });
+
+  return <View style={styles.container}>{bars}</View>;
 }
 
 const styles = StyleSheet.create({

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Audio } from 'expo-av';
-import { Platform } from 'react-native';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
+import { Platform, AppState, AppStateStatus } from 'react-native';
 import { RADIO_STREAMS, AUDIO_CONFIG } from '@/constants/radio';
 
 export interface TrackMetadata {
@@ -35,7 +35,7 @@ export const useAudioPlayer = () => {
   const isMountedRef = useRef(true);
   const autoPlayAttemptedRef = useRef(false);
 
-  // Initialize audio session
+  // Initialize audio session with full background playback support
   useEffect(() => {
     const setupAudio = async () => {
       try {
@@ -43,6 +43,8 @@ export const useAudioPlayer = () => {
           allowsRecordingIOS: false,
           staysActiveInBackground: true,
           playsInSilentModeIOS: true,
+          interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
           shouldDuckAndroid: true,
           playThroughEarpieceAndroid: false,
         });
@@ -53,8 +55,31 @@ export const useAudioPlayer = () => {
 
     setupAudio();
 
+    // Handle app state changes to ensure audio continues in background
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' && soundRef.current) {
+        // Re-apply audio mode when going to background to ensure it stays active
+        try {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            staysActiveInBackground: true,
+            playsInSilentModeIOS: true,
+            interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+            interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+            shouldDuckAndroid: true,
+            playThroughEarpieceAndroid: false,
+          });
+        } catch (error) {
+          console.error('Error re-applying audio mode for background:', error);
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
     return () => {
       isMountedRef.current = false;
+      subscription.remove();
       cleanup();
     };
   }, []);

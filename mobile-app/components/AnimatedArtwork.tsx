@@ -225,17 +225,17 @@ export default function AnimatedArtwork({
 
   const tonearmRotate = tonearmValue.interpolate({
     inputRange: [0, 1],
-    outputRange: ['-75deg', '-15deg'], // Much more dramatic swing from far outside position
+    outputRange: ['-85deg', '-15deg'], // Rest position completely outside disc
   });
 
   const tonearmTranslateX = tonearmValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [35, -40], // More dramatic inward movement
+    outputRange: [55, -40], // Push further right at rest to be clear of disc
   });
 
   const tonearmTranslateY = tonearmValue.interpolate({
     inputRange: [0, 1],
-    outputRange: [12, -15], // Dramatic upward movement as it swings in
+    outputRange: [20, -15], // Adjust vertical position for natural arc
   });
 
   const reflectionRotate = reflectionValue.interpolate({
