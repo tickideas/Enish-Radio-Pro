@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Linking,
   StatusBar,
+  Platform,
+  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,6 +18,7 @@ import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 import NowPlayingArtwork from '@/components/NowPlayingArtwork';
 import AnimatedWaveform from '@/components/AnimatedWaveform';
+import WaveSeparator from '@/components/WaveSeparator';
 import { ApiService } from '@/services/api';
 import { useRouter } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
@@ -74,6 +77,39 @@ export default function HomeScreen() {
 
   void activeBanner;
   void handleBannerClick;
+
+  const handleShare = async () => {
+    try {
+      const storeUrl = Platform.OS === 'ios' 
+        ? APP_CONFIG.APP_STORE_URL 
+        : APP_CONFIG.PLAY_STORE_URL;
+      
+      await Share.share({
+        message: `🎵 Listen to ${APP_CONFIG.NAME} - Your favorite music 24/7!\n\nDownload now: ${storeUrl}`,
+        title: `Share ${APP_CONFIG.NAME}`,
+      });
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
+
+  const handleRateApp = async () => {
+    const storeUrl = Platform.OS === 'ios'
+      ? APP_CONFIG.APP_STORE_URL
+      : APP_CONFIG.PLAY_STORE_URL;
+
+    try {
+      const canOpen = await Linking.canOpenURL(storeUrl);
+      if (canOpen) {
+        await Linking.openURL(storeUrl);
+      } else {
+        Alert.alert('Error', 'Unable to open store. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error opening store:', error);
+      Alert.alert('Error', 'Unable to open store. Please try again later.');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -212,28 +248,46 @@ export default function HomeScreen() {
             />
           </View>
 
+          <WaveSeparator isAnimating={audioPlayer.isPlaying} />
+
           <View style={styles.bottomActions}>
             <TouchableOpacity
               style={styles.bottomActionButton}
               onPress={() => router.push('/sleep-timer')}
             >
-              <Ionicons name="timer-outline" size={22} color="rgba(255,255,255,0.7)" />
+              <View style={styles.actionIconContainer}>
+                <Ionicons name="timer-outline" size={22} color="#FFFFFF" />
+              </View>
               <Text style={styles.bottomActionText}>Sleep</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.bottomActionButton}
-              onPress={() => Alert.alert('Share', 'Share functionality coming soon')}
+              onPress={handleShare}
             >
-              <Ionicons name="share-outline" size={22} color="rgba(255,255,255,0.7)" />
+              <View style={styles.actionIconContainer}>
+                <Ionicons name="share-social-outline" size={22} color="#FFFFFF" />
+              </View>
               <Text style={styles.bottomActionText}>Share</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.bottomActionButton}
+              onPress={handleRateApp}
+            >
+              <View style={styles.actionIconContainer}>
+                <Ionicons name="star-outline" size={22} color="#FFFFFF" />
+              </View>
+              <Text style={styles.bottomActionText}>Rate</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.bottomActionButton}
               onPress={() => router.push('/about')}
             >
-              <Ionicons name="information-circle-outline" size={22} color="rgba(255,255,255,0.7)" />
+              <View style={styles.actionIconContainer}>
+                <Ionicons name="information-circle-outline" size={22} color="#FFFFFF" />
+              </View>
               <Text style={styles.bottomActionText}>About</Text>
             </TouchableOpacity>
           </View>
@@ -406,17 +460,28 @@ const styles = StyleSheet.create({
   bottomActions: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: width * 0.1,
-    marginTop: height * 0.03,
+    gap: width * 0.06,
+    marginTop: height * 0.015,
     paddingBottom: height * 0.02,
   },
   bottomActionButton: {
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
+  },
+  actionIconContainer: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.15)',
   },
   bottomActionText: {
     fontSize: 11,
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: '500',
+    color: 'rgba(255,255,255,0.7)',
+    fontWeight: '600',
+    letterSpacing: 0.3,
   },
 });

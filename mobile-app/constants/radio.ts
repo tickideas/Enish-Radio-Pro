@@ -10,6 +10,10 @@ export const APP_CONFIG = {
   VERSION: '1.0.0',
   SUPPORT_EMAIL: 'contact@enish.co.uk',
   WEBSITE: 'https://www.enish.co.uk',
+  ANDROID_PACKAGE: 'com.enishradio.pro',
+  IOS_APP_ID: '123456789', // TODO: Replace with actual App Store ID when published
+  PLAY_STORE_URL: 'https://play.google.com/store/apps/details?id=com.enishradio.pro',
+  APP_STORE_URL: 'https://apps.apple.com/app/id123456789', // TODO: Replace with actual App Store URL
 };
 
 // Sleep Timer Options (in minutes)

@@ -68,7 +68,9 @@
             "foregroundServiceType": "mediaPlayback"
           }
         }
-      ]
+      ],
+      "expo-asset",
+      "expo-audio"
     ],
     "experiments": {
       "typedRoutes": true,
