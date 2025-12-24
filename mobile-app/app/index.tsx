@@ -1,115 +1,28 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Dimensions,
   ActivityIndicator,
-  Linking,
   StatusBar,
-  Platform,
-  Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
 import { COLORS, APP_CONFIG } from '@/constants/radio';
 import NowPlayingArtwork from '@/components/NowPlayingArtwork';
-import AnimatedWaveform from '@/components/AnimatedWaveform';
-import WaveSeparator from '@/components/WaveSeparator';
-import { ApiService } from '@/services/api';
+import AdBannerCarousel from '@/components/AdBannerCarousel';
 import { useRouter } from 'expo-router';
 import { DrawerActions, useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
-interface AdBanner {
-  _id: string;
-  title: string;
-  imageUrl: string;
-  targetUrl?: string;
-  isActive: boolean;
-  position: number;
-}
-
 export default function HomeScreen() {
-  const [activeBanner, setActiveBanner] = useState<AdBanner | null>(null);
-
   const audioPlayer = useAudioPlayerContext();
   const router = useRouter();
   const navigation = useNavigation();
-
-  useEffect(() => {
-    const fetchAdBanners = async () => {
-      try {
-        const response = await ApiService.getPublicAdBanners();
-        const activeAd = response.data?.find((banner: AdBanner) => banner.isActive);
-        setActiveBanner(activeAd || null);
-      } catch (error) {
-        console.error('Error fetching ad banners:', error);
-      }
-    };
-
-    fetchAdBanners();
-    const interval = setInterval(fetchAdBanners, 5 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleBannerClick = async () => {
-    if (!activeBanner) return;
-
-    try {
-      await ApiService.trackAdClick(activeBanner._id);
-      if (activeBanner.targetUrl) {
-        const canOpen = await Linking.canOpenURL(activeBanner.targetUrl);
-        if (canOpen) {
-          await Linking.openURL(activeBanner.targetUrl);
-        } else {
-          Alert.alert('Error', 'Cannot open this URL');
-        }
-      }
-    } catch (error) {
-      console.error('Error handling banner click:', error);
-    }
-  };
-
-  void activeBanner;
-  void handleBannerClick;
-
-  const handleShare = async () => {
-    try {
-      const storeUrl = Platform.OS === 'ios' 
-        ? APP_CONFIG.APP_STORE_URL 
-        : APP_CONFIG.PLAY_STORE_URL;
-      
-      await Share.share({
-        message: `🎵 Listen to ${APP_CONFIG.NAME} - Your favorite music 24/7!\n\nDownload now: ${storeUrl}`,
-        title: `Share ${APP_CONFIG.NAME}`,
-      });
-    } catch (error) {
-      console.error('Error sharing:', error);
-    }
-  };
-
-  const handleRateApp = async () => {
-    const storeUrl = Platform.OS === 'ios'
-      ? APP_CONFIG.APP_STORE_URL
-      : APP_CONFIG.PLAY_STORE_URL;
-
-    try {
-      const canOpen = await Linking.canOpenURL(storeUrl);
-      if (canOpen) {
-        await Linking.openURL(storeUrl);
-      } else {
-        Alert.alert('Error', 'Unable to open store. Please try again later.');
-      }
-    } catch (error) {
-      console.error('Error opening store:', error);
-      Alert.alert('Error', 'Unable to open store. Please try again later.');
-    }
-  };
 
   return (
     <View style={styles.container}>
@@ -192,13 +105,6 @@ export default function HomeScreen() {
 
               <View style={styles.playerControlsRow}>
                 <TouchableOpacity
-                  style={styles.sideButton}
-                  onPress={() => Alert.alert('Stations', 'Station list coming soon')}
-                >
-                  <Ionicons name="radio-outline" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
-
-                <TouchableOpacity
                   style={styles.mainControlButton}
                   onPress={audioPlayer.togglePlayPause}
                   disabled={audioPlayer.isLoading}
@@ -218,13 +124,6 @@ export default function HomeScreen() {
                     />
                   </LinearGradient>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.sideButton}
-                  onPress={audioPlayer.retryConnection}
-                >
-                  <Ionicons name="refresh-outline" size={24} color="#FFFFFF" />
-                </TouchableOpacity>
               </View>
             </View>
           </View>
@@ -236,60 +135,13 @@ export default function HomeScreen() {
             </Text>
           </View>
 
-          <View style={styles.waveformContainer}>
-            <AnimatedWaveform
-              isPlaying={audioPlayer.isPlaying}
-              barCount={12}
-              barWidth={4}
-              barSpacing={3}
-              minHeight={4}
-              maxHeight={36}
-              multiColor={true}
+          <View style={styles.adBannerSection}>
+            <AdBannerCarousel
+              height={Math.min(140, height * 0.16)}
+              autoScrollInterval={6000}
+              showIndicators={true}
+              borderRadius={12}
             />
-          </View>
-
-          <WaveSeparator isAnimating={audioPlayer.isPlaying} />
-
-          <View style={styles.bottomActions}>
-            <TouchableOpacity
-              style={styles.bottomActionButton}
-              onPress={() => router.push('/sleep-timer')}
-            >
-              <View style={styles.actionIconContainer}>
-                <Ionicons name="timer-outline" size={22} color="#FFFFFF" />
-              </View>
-              <Text style={styles.bottomActionText}>Sleep</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomActionButton}
-              onPress={handleShare}
-            >
-              <View style={styles.actionIconContainer}>
-                <Ionicons name="share-social-outline" size={22} color="#FFFFFF" />
-              </View>
-              <Text style={styles.bottomActionText}>Share</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomActionButton}
-              onPress={handleRateApp}
-            >
-              <View style={styles.actionIconContainer}>
-                <Ionicons name="star-outline" size={22} color="#FFFFFF" />
-              </View>
-              <Text style={styles.bottomActionText}>Rate</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.bottomActionButton}
-              onPress={() => router.push('/about')}
-            >
-              <View style={styles.actionIconContainer}>
-                <Ionicons name="information-circle-outline" size={22} color="#FFFFFF" />
-              </View>
-              <Text style={styles.bottomActionText}>About</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </LinearGradient>
@@ -405,17 +257,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginTop: height * 0.025,
-    gap: width * 0.08,
-  },
-  sideButton: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
   },
   mainControlButton: {
     shadowColor: COLORS.YELLOW,
@@ -452,36 +293,9 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
     letterSpacing: 1,
   },
-  waveformContainer: {
-    alignItems: 'center',
+  adBannerSection: {
+    width: '100%',
     marginTop: height * 0.02,
-    paddingVertical: height * 0.01,
-  },
-  bottomActions: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: width * 0.06,
-    marginTop: height * 0.015,
     paddingBottom: height * 0.02,
-  },
-  bottomActionButton: {
-    alignItems: 'center',
-    gap: 6,
-  },
-  actionIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
-  },
-  bottomActionText: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.7)',
-    fontWeight: '600',
-    letterSpacing: 0.3,
   },
 });

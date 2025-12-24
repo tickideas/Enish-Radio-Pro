@@ -1,4 +1,4 @@
-import { eq, and, or } from 'drizzle-orm';
+import { eq, and, or, count } from 'drizzle-orm';
 import bcrypt from 'bcryptjs';
 import { db } from '../db.js';
 import { users } from '../schema.js';
@@ -139,13 +139,13 @@ class UserModel {
   // Count users by role
   static async countByRole(role, isActive = true) {
     try {
-      const result = await db.select({ count: users.id })
+      const result = await db.select({ count: count(users.id) })
         .from(users)
         .where(and(
           eq(users.role, role),
           eq(users.isActive, isActive)
         ));
-      return result.length;
+      return result[0]?.count || 0;
     } catch (error) {
       console.error('Error counting users by role:', error);
       throw error;

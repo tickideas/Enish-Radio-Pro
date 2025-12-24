@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Drawer } from 'expo-router/drawer';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Linking, ActivityIndicator, Alert, Share, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useState } from 'react';
 import 'react-native-reanimated';
@@ -25,14 +25,16 @@ type MenuItem = {
 };
 
 const RATE_APP_ACTION = 'rate_app';
+const SHARE_APP_ACTION = 'share_app';
 
 const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'default-home', title: 'Home', type: 'internal', target: 'index', icon: 'home', order: 0 },
-  { id: 'default-about', title: 'About', type: 'internal', target: 'about', icon: 'information-circle', order: 1 },
-  { id: 'default-privacy', title: 'Privacy Policy', type: 'internal', target: 'privacy', icon: 'lock-closed', order: 2 },
-  { id: 'default-settings', title: 'Settings', type: 'internal', target: 'settings', icon: 'settings', order: 3 },
-  { id: 'default-sleep', title: 'Sleep Timer', type: 'internal', target: 'sleep-timer', icon: 'moon', order: 4 },
-  { id: 'default-rate', title: 'Rate App', type: 'action', target: RATE_APP_ACTION, icon: 'star', order: 5 },
+  { id: 'default-sleep', title: 'Sleep Timer', type: 'internal', target: 'sleep-timer', icon: 'moon', order: 1 },
+  { id: 'default-about', title: 'About Us', type: 'internal', target: 'about', icon: 'information-circle', order: 2 },
+  { id: 'default-rate', title: 'Rate App', type: 'action', target: RATE_APP_ACTION, icon: 'star', order: 3 },
+  { id: 'default-share', title: 'Share App', type: 'action', target: SHARE_APP_ACTION, icon: 'share-social', order: 4 },
+  { id: 'default-privacy', title: 'Privacy Policy', type: 'internal', target: 'privacy', icon: 'lock-closed', order: 5 },
+  { id: 'default-settings', title: 'Settings', type: 'internal', target: 'settings', icon: 'settings', order: 6 },
 ];
 
 const normalizeOrder = (value: unknown): number => {
@@ -290,7 +292,32 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
       if (item.type === 'action') {
         if (target === RATE_APP_ACTION) {
-          Alert.alert('Rate App', 'Rate functionality will be implemented soon.');
+          const storeUrl = Platform.OS === 'ios'
+            ? APP_CONFIG.APP_STORE_URL
+            : APP_CONFIG.PLAY_STORE_URL;
+          try {
+            const canOpen = await Linking.canOpenURL(storeUrl);
+            if (canOpen) {
+              await Linking.openURL(storeUrl);
+            } else {
+              Alert.alert('Error', 'Unable to open store. Please try again later.');
+            }
+          } catch (error) {
+            console.error('Error opening store:', error);
+            Alert.alert('Error', 'Unable to open store. Please try again later.');
+          }
+        } else if (target === SHARE_APP_ACTION) {
+          try {
+            const storeUrl = Platform.OS === 'ios'
+              ? APP_CONFIG.APP_STORE_URL
+              : APP_CONFIG.PLAY_STORE_URL;
+            await Share.share({
+              message: `🎵 Listen to ${APP_CONFIG.NAME} - Your favorite music 24/7!\n\nDownload now: ${storeUrl}`,
+              title: `Share ${APP_CONFIG.NAME}`,
+            });
+          } catch (error) {
+            console.error('Error sharing:', error);
+          }
         } else {
           Alert.alert('Action unavailable', 'This action is not available yet.');
         }

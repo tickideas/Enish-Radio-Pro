@@ -1,69 +1,40 @@
-# Docker Compose for local development and testing
-# This helps test the production environment before deploying to Coolify
-
 version: '3.8'
 
 services:
-  # PostgreSQL Database
   postgres:
     image: postgres:16-alpine
-    container_name: enish-radio-db
-    restart: unless-stopped
+    container_name: enish-radio-postgres
     environment:
-      POSTGRES_USER: enish_user
-      POSTGRES_PASSWORD: enish_password
-      POSTGRES_DB: enish_radio_pro
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-enish_radio}
     ports:
-      - "5432:5432"
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U enish_user -d enish_radio_pro"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - enish-network
 
-  # Backend API Server
-  backend:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: enish-radio-backend
-    restart: unless-stopped
+  adminer:
+    image: adminer:latest
+    container_name: enish-radio-adminer
     ports:
-      - "3000:3000"
-    environment:
-      # Database
-      DATABASE_URL: postgresql://enish_user:enish_password@postgres:5432/enish_radio_pro
-      
-      # JWT
-      JWT_SECRET: your-super-secret-jwt-key-change-this-in-production
-      
-      # Cloudinary (replace with your credentials)
-      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
-      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
-      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
-      
-      # Server
-      PORT: 3000
-      NODE_ENV: production
-      
-      # CORS
-      ALLOWED_ORIGINS: http://localhost:8081,http://192.168.1.80:8081
+      - "8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+    networks:
+      - enish-network
 
 volumes:
   postgres_data:
     driver: local
 
 networks:
-  default:
-    name: enish-radio-network
+  enish-network:
+    driver: bridge

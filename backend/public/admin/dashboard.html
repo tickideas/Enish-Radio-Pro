@@ -814,7 +814,16 @@
                 <form onsubmit="addSocialLink(event)">
                     <div class="form-group">
                         <label>Platform:</label>
-                        <input type="text" id="platform" required>
+                        <select id="platform" required>
+                            <option value="">Select a platform...</option>
+                            <option value="facebook">Facebook</option>
+                            <option value="twitter">Twitter</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="youtube">YouTube</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="linkedin">LinkedIn</option>
+                            <option value="website">Website</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label>Display Name:</label>
@@ -858,7 +867,16 @@
                     <form onsubmit="updateSocialLink(event, '${id}')">
                         <div class="form-group">
                             <label>Platform:</label>
-                            <input type="text" id="editPlatform" value="${escapeHtml(link.platform || '')}" required>
+                            <select id="editPlatform" required>
+                                <option value="">Select a platform...</option>
+                                <option value="facebook" ${link.platform === 'facebook' ? 'selected' : ''}>Facebook</option>
+                                <option value="twitter" ${link.platform === 'twitter' ? 'selected' : ''}>Twitter</option>
+                                <option value="instagram" ${link.platform === 'instagram' ? 'selected' : ''}>Instagram</option>
+                                <option value="youtube" ${link.platform === 'youtube' ? 'selected' : ''}>YouTube</option>
+                                <option value="tiktok" ${link.platform === 'tiktok' ? 'selected' : ''}>TikTok</option>
+                                <option value="linkedin" ${link.platform === 'linkedin' ? 'selected' : ''}>LinkedIn</option>
+                                <option value="website" ${link.platform === 'website' ? 'selected' : ''}>Website</option>
+                            </select>
                         </div>
                         <div class="form-group">
                             <label>Display Name:</label>
@@ -1050,6 +1068,9 @@
         
         // Ad Banner Modals
         function openAddAdBannerModal() {
+            const today = new Date().toISOString().split('T')[0];
+            const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+            
             const content = `
                 <form onsubmit="addAdBanner(event)">
                     <div class="form-group">
@@ -1067,6 +1088,14 @@
                     <div class="form-group">
                         <label>Image URL:</label>
                         <input type="url" id="imageUrl" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Start Date:</label>
+                        <input type="datetime-local" id="startDate" value="${today}T00:00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>End Date:</label>
+                        <input type="datetime-local" id="endDate" value="${nextMonth}T23:59" required>
                     </div>
                     <div class="form-group">
                         <label>Priority:</label>
@@ -1198,6 +1227,8 @@
                     targetUrl: document.getElementById('targetUrl').value,
                     description: document.getElementById('description').value,
                     imageUrl: document.getElementById('imageUrl').value,
+                    startDate: new Date(document.getElementById('startDate').value).toISOString(),
+                    endDate: new Date(document.getElementById('endDate').value).toISOString(),
                     priority: parseInt(document.getElementById('priority').value),
                     isActive: document.getElementById('isActive').value === 'true'
                 };
@@ -1206,8 +1237,10 @@
                 closeModal();
                 showNotification('Ad banner added successfully', 'success');
                 loadAdBanners();
+                loadDashboardStats();
             } catch (error) {
-                showNotification('Error adding ad banner', 'error');
+                console.error('Error adding ad banner:', error);
+                showNotification(error.message || 'Error adding ad banner', 'error');
             }
         }
         

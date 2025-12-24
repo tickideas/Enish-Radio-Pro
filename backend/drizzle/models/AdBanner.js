@@ -1,4 +1,4 @@
-import { eq, and, or, lte, gte } from 'drizzle-orm';
+import { eq, and, or, lte, gte, sql } from 'drizzle-orm';
 import { db } from '../db.js';
 import { adBanners } from '../schema.js';
 
@@ -99,7 +99,7 @@ class AdBannerModel {
     try {
       const result = await db.update(adBanners)
         .set({ 
-          clickCount: adBanners.clickCount + 1,
+          clickCount: sql`${adBanners.clickCount} + 1`,
           updatedAt: new Date() 
         })
         .where(eq(adBanners.id, id))
@@ -120,7 +120,7 @@ class AdBannerModel {
     try {
       const result = await db.update(adBanners)
         .set({ 
-          impressionCount: adBanners.impressionCount + 1,
+          impressionCount: sql`${adBanners.impressionCount} + 1`,
           updatedAt: new Date() 
         })
         .where(eq(adBanners.id, id))
