@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Audio, InterruptionModeAndroid, InterruptionModeIOS, AVPlaybackStatus } from 'expo-av';
-import { AppState, AppStateStatus } from 'react-native';
 import { RADIO_STREAMS, AUDIO_CONFIG } from '@/constants/radio';
 
 export interface TrackMetadata {
@@ -89,15 +88,8 @@ export const useAudioPlayer = () => {
 
     setupAudio();
 
-    const handleAppStateChange = (_nextAppState: AppStateStatus) => {
-      // Audio mode is set once on startup; no need to re-apply on background
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
     return () => {
       isMountedRef.current = false;
-      subscription.remove();
       clearAllTimers();
       void cleanup();
     };
