@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Audio, InterruptionModeAndroid, InterruptionModeIOS } from 'expo-av';
-import { Platform, AppState, AppStateStatus } from 'react-native';
+import { Audio, InterruptionModeAndroid, InterruptionModeIOS, AVPlaybackStatus } from 'expo-av';
+import { AppState, AppStateStatus } from 'react-native';
 import { RADIO_STREAMS, AUDIO_CONFIG } from '@/constants/radio';
 
 export interface TrackMetadata {
@@ -34,83 +34,23 @@ export const useAudioPlayer = () => {
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
   const autoPlayAttemptedRef = useRef(false);
+  const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const metadataIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Initialize audio session with full background playback support
-  useEffect(() => {
-    const setupAudio = async () => {
-      try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          staysActiveInBackground: true,
-          playsInSilentModeIOS: true,
-          interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-          shouldDuckAndroid: true,
-          playThroughEarpieceAndroid: false,
-        });
-      } catch (error) {
-        console.error('Error setting up audio mode:', error);
-      }
-    };
-
-    setupAudio();
-
-    // Handle app state changes to ensure audio continues in background
-    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'background' && soundRef.current) {
-        // Re-apply audio mode when going to background to ensure it stays active
-        try {
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            staysActiveInBackground: true,
-            playsInSilentModeIOS: true,
-            interruptionModeIOS: InterruptionModeIOS.DuckOthers,
-            interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
-            shouldDuckAndroid: true,
-            playThroughEarpieceAndroid: false,
-          });
-        } catch (error) {
-          console.error('Error re-applying audio mode for background:', error);
-        }
-      }
-    };
-
-    const subscription = AppState.addEventListener('change', handleAppStateChange);
-
-    return () => {
-      isMountedRef.current = false;
-      subscription.remove();
-      cleanup();
-    };
-  }, []);
-
-  // Handle auto-play on app launch
-  useEffect(() => {
-    const attemptAutoPlay = async () => {
-      if (autoPlayAttemptedRef.current) return;
-      
-      try {
-        const { CacheService } = await import('@/services/cache');
-        const autoPlayEnabled = await CacheService.getAutoPlaySetting();
-        
-        if (autoPlayEnabled) {
-          autoPlayAttemptedRef.current = true;
-          // Small delay to ensure app is fully loaded
-          setTimeout(async () => {
-            try {
-              await loadAndPlay(RADIO_STREAMS.PRIMARY_MP3);
-            } catch (error) {
-              console.error('Auto-play failed:', error);
-              // Don't show error to user for auto-play failure
-            }
-          }, 1000);
-        }
-      } catch (error) {
-        console.error('Error checking auto-play setting:', error);
-      }
-    };
-
-    attemptAutoPlay();
+  const clearAllTimers = useCallback(() => {
+    if (autoPlayTimeoutRef.current) {
+      clearTimeout(autoPlayTimeoutRef.current);
+      autoPlayTimeoutRef.current = null;
+    }
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = null;
+    }
+    if (metadataIntervalRef.current) {
+      clearInterval(metadataIntervalRef.current);
+      metadataIntervalRef.current = null;
+    }
   }, []);
 
   const cleanup = useCallback(async () => {
@@ -130,14 +70,47 @@ export const useAudioPlayer = () => {
     }
   }, []);
 
+  useEffect(() => {
+    const setupAudio = async () => {
+      try {
+        await Audio.setAudioModeAsync({
+          allowsRecordingIOS: false,
+          staysActiveInBackground: true,
+          playsInSilentModeIOS: true,
+          interruptionModeIOS: InterruptionModeIOS.DuckOthers,
+          interruptionModeAndroid: InterruptionModeAndroid.DuckOthers,
+          shouldDuckAndroid: true,
+          playThroughEarpieceAndroid: false,
+        });
+      } catch (error) {
+        console.error('Error setting up audio mode:', error);
+      }
+    };
+
+    setupAudio();
+
+    const handleAppStateChange = (_nextAppState: AppStateStatus) => {
+      // Audio mode is set once on startup; no need to re-apply on background
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      isMountedRef.current = false;
+      subscription.remove();
+      clearAllTimers();
+      void cleanup();
+    };
+  }, [cleanup, clearAllTimers]);
+
   const loadAndPlay = useCallback(async (streamUrl: string) => {
+    if (!isMountedRef.current) return;
+
     try {
       updateState({ isLoading: true, error: null, isBuffering: true });
 
-      // Clean up existing sound
       await cleanup();
 
-      // Create new sound instance
       const { sound } = await Audio.Sound.createAsync(
         { uri: streamUrl },
         {
@@ -145,23 +118,31 @@ export const useAudioPlayer = () => {
           isLooping: true,
           volume: state.volume,
         },
-        (status: any) => {
+        (status: AVPlaybackStatus) => {
+          if (!isMountedRef.current) return;
+
           if (status.isLoaded) {
             updateState({
               isPlaying: status.isPlaying || false,
               isBuffering: status.isBuffering || false,
             });
-
+          } else {
             if ('error' in status && status.error) {
               updateState({
                 error: `Playback error: ${status.error}`,
                 isLoading: false,
-                isBuffering: false
+                isBuffering: false,
+                isPlaying: false,
               });
             }
           }
         }
       );
+
+      if (!isMountedRef.current) {
+        await sound.unloadAsync();
+        return;
+      }
 
       soundRef.current = sound;
       reconnectAttemptsRef.current = 0;
@@ -175,13 +156,42 @@ export const useAudioPlayer = () => {
 
     } catch (error) {
       console.error('Error loading stream:', error);
-      updateState({ 
-        error: 'Failed to load radio stream', 
-        isLoading: false,
-        isBuffering: false 
-      });
+      if (isMountedRef.current) {
+        updateState({ 
+          error: 'Failed to load radio stream', 
+          isLoading: false,
+          isBuffering: false 
+        });
+      }
     }
   }, [state.volume, cleanup, updateState]);
+
+  useEffect(() => {
+    const attemptAutoPlay = async () => {
+      if (autoPlayAttemptedRef.current) return;
+      
+      try {
+        const { CacheService } = await import('@/services/cache');
+        const autoPlayEnabled = await CacheService.getAutoPlaySetting();
+        
+        if (autoPlayEnabled && isMountedRef.current) {
+          autoPlayAttemptedRef.current = true;
+          autoPlayTimeoutRef.current = setTimeout(async () => {
+            if (!isMountedRef.current) return;
+            try {
+              await loadAndPlay(RADIO_STREAMS.PRIMARY_MP3);
+            } catch (error) {
+              console.error('Auto-play failed:', error);
+            }
+          }, 1000);
+        }
+      } catch (error) {
+        console.error('Error checking auto-play setting:', error);
+      }
+    };
+
+    attemptAutoPlay();
+  }, [loadAndPlay]);
 
   const play = useCallback(async () => {
     try {
@@ -189,7 +199,6 @@ export const useAudioPlayer = () => {
         await soundRef.current.playAsync();
         updateState({ isPlaying: true });
       } else {
-        // Try primary stream first
         await loadAndPlay(RADIO_STREAMS.PRIMARY_MP3);
       }
     } catch (error) {
@@ -246,13 +255,18 @@ export const useAudioPlayer = () => {
     reconnectAttemptsRef.current++;
     updateState({ isLoading: true, error: null });
 
-    // Try fallback stream if primary failed
     const streamUrl = reconnectAttemptsRef.current === 1 
       ? RADIO_STREAMS.PRIMARY_MP3 
       : RADIO_STREAMS.FALLBACK_M3U;
 
-    setTimeout(() => {
-      loadAndPlay(streamUrl);
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (isMountedRef.current) {
+        loadAndPlay(streamUrl);
+      }
     }, AUDIO_CONFIG.RECONNECT_DELAY * reconnectAttemptsRef.current);
   }, [loadAndPlay, updateState]);
 
@@ -264,24 +278,29 @@ export const useAudioPlayer = () => {
     }
   }, [state.isPlaying, play, pause]);
 
-  // Fetch real metadata from RadioKing API
   useEffect(() => {
-    let metadataInterval: NodeJS.Timeout;
-    
+    if (metadataIntervalRef.current) {
+      clearInterval(metadataIntervalRef.current);
+      metadataIntervalRef.current = null;
+    }
+
+    if (!state.isPlaying || state.error) {
+      return;
+    }
+
     const fetchMetadata = async () => {
-      if (!state.isPlaying || state.error) return;
+      if (!isMountedRef.current || !state.isPlaying) return;
       
       try {
         const { RadioKingService } = await import('@/services/radioKing');
         const response = await RadioKingService.getCurrentTrack();
         
+        if (!isMountedRef.current) return;
+
         if (response.success && response.data) {
           const appFormat = RadioKingService.convertToAppFormat(response.data);
-          updateState({
-            metadata: appFormat
-          });
+          updateState({ metadata: appFormat });
         } else {
-          // Fallback to default metadata
           updateState({
             metadata: {
               title: 'Enish Radio Live',
@@ -294,30 +313,27 @@ export const useAudioPlayer = () => {
         }
       } catch (error) {
         console.error('Error fetching RadioKing metadata:', error);
-        // Fallback to default metadata on error
-        updateState({
-          metadata: {
-            title: 'Enish Radio Live',
-            artist: '24/7 Music Stream',
-            album: 'Live Stream',
-            artwork: '',
-            duration: 0
-          }
-        });
+        if (isMountedRef.current) {
+          updateState({
+            metadata: {
+              title: 'Enish Radio Live',
+              artist: '24/7 Music Stream',
+              album: 'Live Stream',
+              artwork: '',
+              duration: 0
+            }
+          });
+        }
       }
     };
 
-    // Fetch immediately when playback starts
-    if (state.isPlaying && !state.error) {
-      fetchMetadata();
-    }
-
-    // Set up interval for periodic updates (every 15 seconds for more frequent updates)
-    metadataInterval = setInterval(fetchMetadata, 15000);
+    fetchMetadata();
+    metadataIntervalRef.current = setInterval(fetchMetadata, 15000);
 
     return () => {
-      if (metadataInterval) {
-        clearInterval(metadataInterval);
+      if (metadataIntervalRef.current) {
+        clearInterval(metadataIntervalRef.current);
+        metadataIntervalRef.current = null;
       }
     };
   }, [state.isPlaying, state.error, updateState]);

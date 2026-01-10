@@ -175,73 +175,89 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [socialLoading, setSocialLoading] = useState(true);
 
-  const loadMenuItems = useCallback(async () => {
-    setMenuLoading(true);
-    let resolved = false;
-    try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.MENU_ITEMS}`);
-      const data = await response.json();
-      if (data.success && Array.isArray(data.data)) {
-        const activeItems: MenuItem[] = data.data
-          .filter((item: any) => item && (item.isActive ?? true))
-          .map((item: any, index: number): MenuItem => ({
-            id: item.id ?? `menu-${index}`,
-            title:
-              typeof item.title === 'string' && item.title.trim().length > 0
-                ? item.title.trim()
-                : 'Menu Item',
-            subtitle:
-              typeof item.subtitle === 'string' && item.subtitle.trim().length > 0
-                ? item.subtitle.trim()
-                : null,
-            type: ['internal', 'external', 'action'].includes(item.type) ? item.type : 'internal',
-            target: typeof item.target === 'string' ? item.target.trim() : '',
-            icon: typeof item.icon === 'string' ? item.icon.trim() : null,
-            order: normalizeOrder(item.order),
-          }))
-          .filter((item) => item.target)
-          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-
-        if (activeItems.length > 0) {
-          setMenuItems(activeItems);
-          resolved = true;
-        }
-      }
-    } catch (error) {
-      console.error('Error loading menu items:', error);
-    } finally {
-      if (!resolved) {
-        setMenuItems(DEFAULT_MENU_ITEMS);
-      }
-      setMenuLoading(false);
-    }
-  }, []);
-
-  const loadSocialLinks = useCallback(async () => {
-    setSocialLoading(true);
-    try {
-      const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.SOCIAL_LINKS}/active`);
-      const data = await response.json();
-      if (data.success && Array.isArray(data.data)) {
-        const sortedLinks = [...data.data].sort(
-          (a: any, b: any) => normalizeOrder(a.order) - normalizeOrder(b.order)
-        );
-        setSocialLinks(sortedLinks);
-      } else {
-        setSocialLinks([]);
-      }
-    } catch (error) {
-      console.error('Error loading social links:', error);
-      setSocialLinks([]);
-    } finally {
-      setSocialLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
+    const abortController = new AbortController();
+    const signal = abortController.signal;
+    const timeoutMs = 10000;
+
+    const loadMenuItems = async () => {
+      setMenuLoading(true);
+      let resolved = false;
+      try {
+        const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+        const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.MENU_ITEMS}`, { signal });
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
+          const activeItems: MenuItem[] = data.data
+            .filter((item: any) => item && (item.isActive ?? true))
+            .map((item: any, index: number): MenuItem => ({
+              id: item.id ?? `menu-${index}`,
+              title:
+                typeof item.title === 'string' && item.title.trim().length > 0
+                  ? item.title.trim()
+                  : 'Menu Item',
+              subtitle:
+                typeof item.subtitle === 'string' && item.subtitle.trim().length > 0
+                  ? item.subtitle.trim()
+                  : null,
+              type: ['internal', 'external', 'action'].includes(item.type) ? item.type : 'internal',
+              target: typeof item.target === 'string' ? item.target.trim() : '',
+              icon: typeof item.icon === 'string' ? item.icon.trim() : null,
+              order: normalizeOrder(item.order),
+            }))
+            .filter((item) => item.target)
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+          if (activeItems.length > 0) {
+            setMenuItems(activeItems);
+            resolved = true;
+          }
+        }
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error loading menu items:', error);
+        }
+      } finally {
+        if (!resolved) {
+          setMenuItems(DEFAULT_MENU_ITEMS);
+        }
+        setMenuLoading(false);
+      }
+    };
+
+    const loadSocialLinks = async () => {
+      setSocialLoading(true);
+      try {
+        const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
+        const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.SOCIAL_LINKS}/active`, { signal });
+        clearTimeout(timeoutId);
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
+          const sortedLinks = [...data.data].sort(
+            (a: any, b: any) => normalizeOrder(a.order) - normalizeOrder(b.order)
+          );
+          setSocialLinks(sortedLinks);
+        } else {
+          setSocialLinks([]);
+        }
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          console.error('Error loading social links:', error);
+        }
+        setSocialLinks([]);
+      } finally {
+        setSocialLoading(false);
+      }
+    };
+
     loadMenuItems();
     loadSocialLinks();
-  }, [loadMenuItems, loadSocialLinks]);
+
+    return () => {
+      abortController.abort();
+    };
+  }, []);
 
   const handleSocialLink = useCallback(async (url: string) => {
     if (!url) {
@@ -426,6 +442,8 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
                 key={link.id}
                 style={styles.socialLink}
                 onPress={() => handleSocialLink(link.url)}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${link.platform}`}
               >
                 <Ionicons name={getSocialIconName(link.platform) as any} size={24} color={COLORS.PRIMARY} />
               </TouchableOpacity>

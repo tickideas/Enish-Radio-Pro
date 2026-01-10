@@ -45,6 +45,8 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.headerIconButton}
               onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
+              accessibilityRole="button"
+              accessibilityLabel="Open menu"
             >
               <Ionicons name="menu" size={24} color="#FFFFFF" />
             </TouchableOpacity>
@@ -56,6 +58,8 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.headerIconButton}
               onPress={() => router.push('/settings')}
+              accessibilityRole="button"
+              accessibilityLabel="Open settings"
             >
               <Ionicons name="settings-outline" size={24} color="#FFFFFF" />
             </TouchableOpacity>
@@ -95,6 +99,8 @@ export default function HomeScreen() {
                     <TouchableOpacity
                       style={styles.retryButton}
                       onPress={audioPlayer.retryConnection}
+                      accessibilityRole="button"
+                      accessibilityLabel="Retry connection"
                     >
                       <Ionicons name="refresh" size={20} color="#FFFFFF" />
                       <Text style={styles.retryText}>Retry</Text>
@@ -109,6 +115,9 @@ export default function HomeScreen() {
                   onPress={audioPlayer.togglePlayPause}
                   disabled={audioPlayer.isLoading}
                   activeOpacity={0.8}
+                  accessibilityRole="button"
+                  accessibilityLabel={audioPlayer.isPlaying ? 'Pause radio' : 'Play radio'}
+                  accessibilityState={{ disabled: audioPlayer.isLoading }}
                 >
                   <LinearGradient
                     colors={[COLORS.YELLOW, COLORS.ACCENT]}
