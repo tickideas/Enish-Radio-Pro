@@ -88,7 +88,7 @@ export default function WaveSeparator({
         ]}
       >
         <LinearGradient
-          colors={colors[index % colors.length]}
+          colors={colors[index % colors.length] as [string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={[

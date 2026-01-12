@@ -45,7 +45,7 @@ export default function AdBannerCarousel({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const scrollViewRef = useRef<ScrollView>(null);
-  const autoScrollTimer = useRef<NodeJS.Timeout | null>(null);
+  const autoScrollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const bannerWidth = SCREEN_WIDTH - 40;
 

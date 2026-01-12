@@ -176,17 +176,20 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
   const [socialLoading, setSocialLoading] = useState(true);
 
   useEffect(() => {
-    const abortController = new AbortController();
-    const signal = abortController.signal;
+    const menuAbortController = new AbortController();
+    const socialAbortController = new AbortController();
     const timeoutMs = 10000;
 
     const loadMenuItems = async () => {
       setMenuLoading(true);
       let resolved = false;
       try {
-        const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
-        const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.MENU_ITEMS}`, { signal });
+        const timeoutId = setTimeout(() => menuAbortController.abort(), timeoutMs);
+        const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.MENU_ITEMS}`, { signal: menuAbortController.signal });
         clearTimeout(timeoutId);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {
           const activeItems: MenuItem[] = data.data
@@ -206,8 +209,8 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
               icon: typeof item.icon === 'string' ? item.icon.trim() : null,
               order: normalizeOrder(item.order),
             }))
-            .filter((item) => item.target)
-            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            .filter((item: MenuItem) => item.target)
+            .sort((a: MenuItem, b: MenuItem) => (a.order ?? 0) - (b.order ?? 0));
 
           if (activeItems.length > 0) {
             setMenuItems(activeItems);
@@ -229,9 +232,12 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     const loadSocialLinks = async () => {
       setSocialLoading(true);
       try {
-        const timeoutId = setTimeout(() => abortController.abort(), timeoutMs);
-        const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.SOCIAL_LINKS}/active`, { signal });
+        const timeoutId = setTimeout(() => socialAbortController.abort(), timeoutMs);
+        const response = await fetch(`${API_ENDPOINTS.BASE_URL}${API_ENDPOINTS.SOCIAL_LINKS}/active`, { signal: socialAbortController.signal });
         clearTimeout(timeoutId);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
         const data = await response.json();
         if (data.success && Array.isArray(data.data)) {
           const sortedLinks = [...data.data].sort(
@@ -255,7 +261,8 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
     loadSocialLinks();
 
     return () => {
-      abortController.abort();
+      menuAbortController.abort();
+      socialAbortController.abort();
     };
   }, []);
 
@@ -383,7 +390,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
             const isDisabled = isInternal && !routeExists;
             const isActive = isInternal && activeRouteName === item.target;
 
-            const itemStyles = [
+            const itemStyles: any[] = [
               styles.navItem,
               { borderBottomColor: borderColor },
               isActive && {

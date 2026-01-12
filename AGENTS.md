@@ -594,6 +594,55 @@ The backend uses Hono framework with the following API structure:
 
 ---
 
+## Recent Updates (January 12, 2026)
+
+### Oracle Code Review & Critical Fixes
+
+A comprehensive code review was conducted using the Oracle tool, identifying and fixing several critical issues:
+
+#### Critical Issues Fixed
+
+1. **Duplicate Variable Declarations** (Critical - Runtime Crash)
+   - Fixed duplicate `const token` declaration in `server.hono.js` login endpoint
+   - Fixed duplicate `const newToken` declaration in refresh endpoint
+   - Added missing `return` statement for refresh token response
+
+2. **JWT Secret Fallback Removal** (Critical - Security)
+   - Removed all 4 hardcoded `'your-secret-key'` fallbacks from `routes/auth.js`
+   - Removed all 5 hardcoded fallbacks from `server.enhanced.js`
+   - All JWT operations now require `JWT_SECRET` environment variable
+
+3. **Token Refresh Max Age Enforcement** (High - Security)
+   - Added `TOKEN_MAX_AGE_SECONDS` (7 days) constant to `routes/auth.js`
+   - Refresh endpoint now rejects tokens older than 7 days from original issue
+   - Prevents indefinite token refresh attacks
+
+#### Mobile App Fixes (Already Applied)
+
+4. **Separate AbortControllers** (Medium - Reliability)
+   - Menu and social link fetches now use independent AbortControllers
+   - Timeout on one request no longer cancels the other
+
+5. **Response.ok Checks** (Medium - Error Handling)
+   - Added `response.ok` validation before parsing JSON
+   - Non-200 responses now throw proper errors instead of silent failures
+
+#### Files Modified
+
+- `backend/server.hono.js` - Fixed duplicate declarations, added return statement
+- `backend/routes/auth.js` - Removed secret fallbacks, added token age enforcement
+- `backend/server.enhanced.js` - Removed all 5 secret fallbacks
+- `mobile-app/app/_layout.tsx` - Separate controllers and response validation
+
+#### Verification Status
+
+✅ `node --check server.hono.js` passes  
+✅ `node --check routes/auth.js` passes  
+✅ `node --check server.enhanced.js` passes  
+✅ No hardcoded JWT secrets remain in JavaScript files  
+
+---
+
 ## Recent Updates (December 24, 2025)
 
 ### Backend Code Review & Optimization Complete
@@ -668,7 +717,7 @@ All backend dependencies have been updated to their latest versions:
 - Race condition in admin deletion (requires database transactions)
 - SQL injection vulnerability in MenuItem.js (requires Drizzle DDL migration)
 - No pagination on list endpoints (scalability concern)
-- JWT token refresh age limit (security enhancement)
+- ~~JWT token refresh age limit (security enhancement)~~ ✅ Fixed January 2026
 
 #### Important Notes for Agents
 

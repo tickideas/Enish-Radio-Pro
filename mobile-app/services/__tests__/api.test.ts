@@ -153,7 +153,7 @@ describe('CacheService', () => {
     await CacheService.set('test-key-1', { id: '1' });
     await CacheService.set('test-key-2', { id: '2' });
     
-    await CacheService.clear();
+    await CacheService.clearCache();
     
     const result1 = await CacheService.get('test-key-1');
     const result2 = await CacheService.get('test-key-2');

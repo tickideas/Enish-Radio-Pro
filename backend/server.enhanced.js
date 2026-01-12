@@ -74,7 +74,7 @@ const getAuthUser = async (c) => {
     const authHeader = c.req.header('authorization') || ''
     if (!authHeader.startsWith('Bearer ')) return null
     const token = authHeader.substring(7)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key')
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
     const user = await UserModel.findById(decoded.id)
     if (!user || !user.isActive) return null
     return { id: user.id, email: user.email, role: user.role }
@@ -165,7 +165,7 @@ app.post('/api/auth/login',
       await UserModel.updateLastLogin(user.id)
 
       const payload = { id: user.id, email: user.email, role: user.role }
-      const token = jwt.sign(payload, process.env.JWT_SECRET || 'your-secret-key', { 
+      const token = jwt.sign(payload, process.env.JWT_SECRET, { 
         expiresIn: '24h',
         issuer: 'enish-radio-pro',
         audience: 'enish-radio-admin'
@@ -282,7 +282,7 @@ app.get('/api/auth/verify', async (c) => {
     }, 401)
     
     const token = authHeader.substring(7)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
       issuer: 'enish-radio-pro',
       audience: 'enish-radio-admin'
     })
@@ -329,7 +329,7 @@ app.post('/api/auth/refresh', async (c) => {
     }, 401)
     
     const token = authHeader.substring(7)
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', { 
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { 
       ignoreExpiration: true,
       issuer: 'enish-radio-pro',
       audience: 'enish-radio-admin'
@@ -344,7 +344,7 @@ app.post('/api/auth/refresh', async (c) => {
 
     const newToken = jwt.sign(
       { id: user.id, email: user.email, role: user.role }, 
-      process.env.JWT_SECRET || 'your-secret-key', 
+      process.env.JWT_SECRET, 
       { 
         expiresIn: '24h',
         issuer: 'enish-radio-pro',

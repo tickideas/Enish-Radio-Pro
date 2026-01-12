@@ -5,14 +5,10 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
-  AccessibilityInfo,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-
-const { width: screenWidth } = Dimensions.get('window');
 
 interface UserExperienceMetrics {
   gestureRecognized: boolean;
@@ -82,21 +78,6 @@ const MicroInteraction: React.FC<MicroInteractionProps> = ({
     ]).start();
   };
 
-  const handleGestureCancel = () => {
-    Animated.parallel([
-      Animated.timing(scaleAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  };
-
   return (
     <Animated.View
       style={[
@@ -114,8 +95,6 @@ const MicroInteraction: React.FC<MicroInteractionProps> = ({
         onPressIn={handleGestureStart}
         onPressOut={handleGestureEnd}
         onPress={handleGestureEnd}
-        onResponderRelease={handleGestureEnd}
-        onResponderCancel={handleGestureCancel}
         accessible={true}
         accessibilityRole="button"
         accessibilityLabel={accessibilityLabel}
@@ -324,7 +303,7 @@ const AdaptiveFeedback: React.FC<AdaptiveFeedbackProps> = ({
       case 'bottom':
         return { bottom: 50 };
       case 'center':
-        return { top: '50%', transform: [{ translateY: -50 }] };
+        return { top: '50%', marginTop: -30 } as const;
     }
   };
 
@@ -341,7 +320,7 @@ const AdaptiveFeedback: React.FC<AdaptiveFeedbackProps> = ({
       accessibilityLiveRegion="polite"
     >
       <LinearGradient
-        colors={config.colors}
+        colors={config.colors as [string, string]}
         style={styles.feedbackGradient}
       >
         <View style={styles.feedbackContent}>

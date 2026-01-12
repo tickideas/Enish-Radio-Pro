@@ -29,6 +29,7 @@
       "predictiveBackGestureEnabled": false,
       "package": "com.enishradio.pro",
       "versionCode": 1,
+      "allowBackup": false,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.WAKE_LOCK",
@@ -76,7 +77,8 @@
       "router": {},
       "eas": {
         "projectId": "3d299592-ccc7-4109-a784-4ca494d8efc0"
-      }
+      },
+      "privacyPolicyUrl": "https://enishradio.com/privacy"
     }
   }
 }

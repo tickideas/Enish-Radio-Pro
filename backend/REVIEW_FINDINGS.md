@@ -1,5 +1,7 @@
 # Backend Code Review Findings
 
+**Last Updated**: January 12, 2026
+
 ## Critical Issues Found
 
 ### 1. **JWT Secret Fallback in Production** ❌
@@ -68,11 +70,11 @@ return result[0]?.count || 0;
 **Issue**: Using string templates in SQL without parameterization.
 **Fix**: Use Drizzle's DDL API instead.
 
-### 10. **JWT Token Not Validated for Expiration on Refresh** ⚠️
-**Location**: `server.hono.js` (line 264)
+### 10. **JWT Token Not Validated for Expiration on Refresh** ✅ FIXED (January 2026)
+**Location**: `server.hono.js` (line 264), `routes/auth.js`
 **Severity**: MEDIUM - Security
-**Issue**: `ignoreExpiration: true` means expired tokens can be refreshed indefinitely.
-**Fix**: Add expiration check with reasonable grace period.
+**Issue**: ~~`ignoreExpiration: true` means expired tokens can be refreshed indefinitely.~~
+**Fix Applied**: Added `TOKEN_MAX_AGE_SECONDS` (7 days) enforcement. Tokens older than 7 days from original issue are now rejected with 401 error.
 
 ### 11. **No CORS Configuration for Production** ⚠️
 **Location**: `server.hono.js` (line 35)

@@ -18,7 +18,7 @@ export const useSleepTimer = (onTimerEnd: () => void) => {
     isPaused: false,
   });
 
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
 
   // Load saved timer state on mount

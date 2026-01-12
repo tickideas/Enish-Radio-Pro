@@ -234,7 +234,6 @@ app.post('/api/auth/login', async (c) => {
     await UserModel.updateLastLogin(user.id)
 
     const payload = { id: user.id, email: user.email, role: user.role }
-    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' })
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION })
     return c.json({ success: true, token, user: payload })
   } catch (error) {
@@ -316,8 +315,8 @@ app.post('/api/auth/refresh', async (c) => {
     
     if (!user || !user.isActive) return c.json({ success: false, error: 'User not found or inactive' }, 401)
 
-    const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' })
     const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRATION })
+    return c.json({ success: true, token: newToken })
   } catch (error) {
     console.error('Token refresh error:', error)
     return c.json({ success: false, error: 'Server error during token refresh' }, 500)
@@ -930,7 +929,6 @@ app.get('/api/analytics/overview', requireAdmin(), async (c) => {
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
     startOfMonth.setHours(0, 0, 0, 0)
 
-    const totalSocialLinks = await SocialLinkModel.getAll()
     // Run queries in parallel for better performance
     const [totalSocialLinks, totalMenuItems, totalAds] = await Promise.all([
       SocialLinkModel.getAll(),
@@ -942,8 +940,9 @@ app.get('/api/analytics/overview', requireAdmin(), async (c) => {
     const activeMenuItems = totalMenuItems.filter((item) => item.isActive)
     const activeAds = totalAds.filter((a) => a.isActive)
 
-    const weeklyClicks = totalAds.filter((a) => a.createdAt >= startOfWeek).reduce((sum, a) => sum + a.clickCount, 0)
-    const monthlyClicks = totalAds.filter((a) => a.createdAt >= startOfMonth).reduce((sum, a) => sum + a.clickCount, 0)
+    const totalClicks = totalAds.reduce((sum, a) => sum + (a.clickCount || 0), 0)
+    const weeklyClicks = totalAds.filter((a) => a.createdAt >= startOfWeek).reduce((sum, a) => sum + (a.clickCount || 0), 0)
+    const monthlyClicks = totalAds.filter((a) => a.createdAt >= startOfMonth).reduce((sum, a) => sum + (a.clickCount || 0), 0)
 
     return c.json({
       success: true,

@@ -1,5 +1,6 @@
 // Performance Optimization Service for Mobile App
-import { NativeModules } from 'react-native';
+import React from 'react';
+import { NativeModules, View, Text, TouchableOpacity } from 'react-native';
 import { performanceMonitor } from './performance';
 
 interface PerformanceOptimizationConfig {
@@ -32,7 +33,7 @@ class PerformanceOptimizationService {
   private config: PerformanceOptimizationConfig;
   private metrics: PerformanceMetrics;
   private listeners: Map<string, (data: any) => void>;
-  private optimizationInterval?: NodeJS.Timeout;
+  private optimizationInterval?: ReturnType<typeof setTimeout>;
 
   constructor(config: Partial<PerformanceOptimizationConfig> = {}) {
     this.config = {
@@ -65,7 +66,7 @@ class PerformanceOptimizationService {
     }, 30000); // Every 30 seconds
 
     // Track app startup performance
-    performanceMonitor.trackAppStart();
+    performanceMonitor.markAppLaunchStart();
     
     // Monitor memory usage
     this.startMemoryMonitoring();
@@ -87,10 +88,11 @@ class PerformanceOptimizationService {
           this.triggerOptimization('memory');
         }
         
-        performanceMonitor.trackMemoryUsage(
-          memoryInfo.usedMemory,
-          memoryInfo.totalMemory
-        );
+        // Note: trackMemoryUsage method not available in performanceMonitor
+        // performanceMonitor.trackMemoryUsage(
+        //   memoryInfo.usedMemory,
+        //   memoryInfo.totalMemory
+        // );
       }, 10000); // Every 10 seconds
     }
   }
@@ -98,14 +100,15 @@ class PerformanceOptimizationService {
   private startNetworkMonitoring() {
     // Monitor network requests and cache performance
     const originalFetch = global.fetch;
+    const self = this;
     
-    global.fetch = async (...args) => {
+    global.fetch = async function(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
       const startTime = Date.now();
       try {
-        const response = await originalFetch.apply(global, args);
+        const response = await originalFetch(input, init);
         const responseTime = Date.now() - startTime;
         
-        this.metrics.networkRequests++;
+        self.metrics.networkRequests++;
         performanceMonitor.trackApiCall('fetch', responseTime, true);
         
         return response;
@@ -570,7 +573,7 @@ const styles = {
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: 'bold' as const,
     color: '#1a1a1a',
     marginBottom: 20,
   },
@@ -578,9 +581,9 @@ const styles = {
     marginBottom: 30,
   },
   metricRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: 'row' as const,
+    justifyContent: 'space-between' as const,
+    alignItems: 'center' as const,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
@@ -591,14 +594,14 @@ const styles = {
   },
   metricValue: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
   optimizeButton: {
     backgroundColor: '#007AFF',
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
-    alignItems: 'center',
+    alignItems: 'center' as const,
   },
   optimizeButtonDisabled: {
     backgroundColor: '#ccc',
@@ -606,7 +609,7 @@ const styles = {
   optimizeButtonText: {
     color: '#fff',
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '600' as const,
   },
 };
 

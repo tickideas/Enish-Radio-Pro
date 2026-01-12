@@ -10,17 +10,17 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Slider,
   Dimensions,
   Alert,
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import Slider from '@react-native-community/slider';
 import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
-import { performanceMonitor, errorTracker } from '@/services/performance';
+import { errorTracker } from '@/services/performance';
 import { COLORS } from '@/constants/radio';
 
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 interface AudioPreset {
   id: string;
@@ -115,7 +115,7 @@ export const AdvancedAudioControls: React.FC<AdvancedAudioControlsProps> = ({
         loudness: preset.loudness,
         spatial: preset.spatialAudio
       });
-    } catch (error) {
+    } catch (_error) {
       errorTracker.logError('Failed to apply audio preset', 'audio', 'medium');
       Alert.alert('Error', 'Failed to apply audio preset');
     }
@@ -147,8 +147,8 @@ export const AdvancedAudioControls: React.FC<AdvancedAudioControlsProps> = ({
         console.log(`Spatial audio: ${effects.spatial ? 'enabled' : 'disabled'}`);
       }
 
-      performanceMonitor.trackAudioEffect(effects);
-    } catch (error) {
+      // Audio effects applied successfully
+    } catch (_error) {
       errorTracker.logError('Failed to apply audio effects', 'audio', 'medium');
     }
   };
@@ -158,28 +158,11 @@ export const AdvancedAudioControls: React.FC<AdvancedAudioControlsProps> = ({
     try {
       setAudioQuality(quality);
       
-      // Simulate quality-based adjustments
-      let streamUrl = '';
-      switch (quality) {
-        case 'low':
-          streamUrl = 'low_quality_stream_url';
-          break;
-        case 'medium':
-          streamUrl = 'medium_quality_stream_url';
-          break;
-        case 'high':
-          streamUrl = 'high_quality_stream_url';
-          break;
-        case 'auto':
-          streamUrl = 'auto_quality_stream_url';
-          break;
-      }
-      
       // In a real implementation, this would trigger a stream change
       console.log(`Audio quality changed to: ${quality}`);
       
-      performanceMonitor.trackAudioQuality(quality);
-    } catch (error) {
+      // Quality change applied successfully
+    } catch (_error) {
       errorTracker.logError('Failed to change audio quality', 'audio', 'medium');
     }
   };
@@ -238,63 +221,63 @@ export const AdvancedAudioControls: React.FC<AdvancedAudioControlsProps> = ({
         ))}
       </ScrollView>
 
-      {/* EQ Sliders */}
+      {/* EQ Controls */}
       <View style={styles.eqContainer}>
         {/* Bass */}
         <View style={styles.eqSlider}>
-          <Text style={styles.eqLabel}>Bass</Text>
-          <View style={styles.sliderContainer}>
-            <Slider
-              value={bassBoost}
-              onValueChange={handleBassChange}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              minimumTrackTintColor={COLORS.PRIMARY}
-              maximumTrackTintColor={COLORS.BORDER}
-              thumbStyle={styles.sliderThumb}
-              style={styles.slider}
-            />
+          <View style={styles.eqLabelRow}>
+            <Text style={styles.eqLabel}>Bass</Text>
             <Text style={styles.eqValue}>{bassBoost}%</Text>
           </View>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={bassBoost}
+            onValueChange={handleBassChange}
+            minimumTrackTintColor={COLORS.PRIMARY}
+            maximumTrackTintColor={COLORS.BORDER}
+            thumbTintColor={COLORS.PRIMARY}
+          />
         </View>
 
         {/* Mid */}
         <View style={styles.eqSlider}>
-          <Text style={styles.eqLabel}>Mid</Text>
-          <View style={styles.sliderContainer}>
-            <Slider
-              value={midRange}
-              onValueChange={handleMidChange}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              minimumTrackTintColor={COLORS.PRIMARY}
-              maximumTrackTintColor={COLORS.BORDER}
-              thumbStyle={styles.sliderThumb}
-              style={styles.slider}
-            />
+          <View style={styles.eqLabelRow}>
+            <Text style={styles.eqLabel}>Mid</Text>
             <Text style={styles.eqValue}>{midRange}%</Text>
           </View>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={midRange}
+            onValueChange={handleMidChange}
+            minimumTrackTintColor={COLORS.PRIMARY}
+            maximumTrackTintColor={COLORS.BORDER}
+            thumbTintColor={COLORS.PRIMARY}
+          />
         </View>
 
         {/* Treble */}
         <View style={styles.eqSlider}>
-          <Text style={styles.eqLabel}>Treble</Text>
-          <View style={styles.sliderContainer}>
-            <Slider
-              value={treble}
-              onValueChange={handleTrebleChange}
-              minimumValue={0}
-              maximumValue={100}
-              step={1}
-              minimumTrackTintColor={COLORS.PRIMARY}
-              maximumTrackTintColor={COLORS.BORDER}
-              thumbStyle={styles.sliderThumb}
-              style={styles.slider}
-            />
+          <View style={styles.eqLabelRow}>
+            <Text style={styles.eqLabel}>Treble</Text>
             <Text style={styles.eqValue}>{treble}%</Text>
           </View>
+          <Slider
+            style={styles.slider}
+            minimumValue={0}
+            maximumValue={100}
+            step={1}
+            value={treble}
+            onValueChange={handleTrebleChange}
+            minimumTrackTintColor={COLORS.PRIMARY}
+            maximumTrackTintColor={COLORS.BORDER}
+            thumbTintColor={COLORS.PRIMARY}
+          />
         </View>
       </View>
     </View>
@@ -569,24 +552,21 @@ const styles = StyleSheet.create({
   eqLabel: {
     fontSize: 16,
     color: COLORS.TEXT,
-    marginBottom: 8,
   },
-  sliderContainer: {
+  eqLabelRow: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    marginBottom: 4,
   },
   slider: {
-    flex: 1,
-    marginRight: 16,
-  },
-  sliderThumb: {
-    backgroundColor: COLORS.PRIMARY,
+    width: '100%',
+    height: 40,
   },
   eqValue: {
     fontSize: 14,
     color: COLORS.TEXT,
-    minWidth: 40,
-    textAlign: 'center',
+    fontWeight: '500',
   },
   effectRow: {
     flexDirection: 'row',

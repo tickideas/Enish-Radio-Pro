@@ -33,9 +33,9 @@ export const useAudioPlayer = () => {
   const reconnectAttemptsRef = useRef(0);
   const isMountedRef = useRef(true);
   const autoPlayAttemptedRef = useRef(false);
-  const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const metadataIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const autoPlayTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reconnectTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const metadataIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const clearAllTimers = useCallback(() => {
     if (autoPlayTimeoutRef.current) {

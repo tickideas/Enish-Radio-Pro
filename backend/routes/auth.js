@@ -5,6 +5,7 @@ import UserModel from '../drizzle/models/User.js';
 import { adminAuth } from '../middleware/auth.js';
 
 const router = express.Router();
+const TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
 
 // POST /api/auth/login - Login user
 router.post('/login', async (req, res) => {
@@ -48,7 +49,7 @@ router.post('/login', async (req, res) => {
     
     const token = jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
     
@@ -173,7 +174,7 @@ router.get('/verify', async (req, res) => {
     }
     
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Get fresh user data
     const user = await UserModel.findById(decoded.id);
@@ -229,7 +230,16 @@ router.post('/refresh', async (req, res) => {
     }
     
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key', { ignoreExpiration: true });
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, { ignoreExpiration: true });
+    
+    // Enforce maximum token age (7 days from original issue)
+    const tokenAge = Math.floor(Date.now() / 1000) - decoded.iat;
+    if (tokenAge > TOKEN_MAX_AGE_SECONDS) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token too old. Please login again.'
+      });
+    }
     
     // Get fresh user data to ensure user still exists and is active
     const user = await UserModel.findById(decoded.id);
@@ -249,7 +259,7 @@ router.post('/refresh', async (req, res) => {
     
     const newToken = jwt.sign(
       payload,
-      process.env.JWT_SECRET || 'your-secret-key',
+      process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
     

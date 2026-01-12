@@ -1,6 +1,6 @@
 # Backend Code Review - Fixes Applied
 
-**Review Date**: December 24, 2025  
+**Review Date**: December 24, 2025 (Updated January 12, 2026)  
 **Status**: ✅ All fixes applied and tested  
 **Server Status**: Running on Node.js 20+, Hono 4.11.1, Drizzle ORM 0.45.1
 
@@ -200,10 +200,14 @@ if (missingVars.length > 0) {
 **Description**: List endpoints return all records; no limit/offset
 **Recommended Fix**: Add query parameters for pagination
 
-### ⚠️ JWT Refresh Expiration (MEDIUM)
-**Status**: Identified
-**Description**: Expired tokens can be refreshed indefinitely
-**Recommended Fix**: Add grace period check or max refresh age
+### ✅ JWT Refresh Expiration (MEDIUM) - FIXED January 2026
+**Status**: Fixed
+**Description**: ~~Expired tokens can be refreshed indefinitely~~
+**Fix Applied**: 
+- Added `TOKEN_MAX_AGE_SECONDS` (7 days) constant to `routes/auth.js`
+- Refresh endpoint now checks token's `iat` (issued-at) timestamp
+- Tokens older than 7 days from original issue are rejected
+- Also fixed in `server.hono.js` refresh endpoint
 
 ---
 
@@ -239,6 +243,10 @@ All 11 packages updated to latest versions:
 2. **drizzle/models/User.js** - Count logic fix
 3. **utils/validation.js** (NEW) - Validation utilities
 4. **REVIEW_FINDINGS.md** (NEW) - Detailed findings document
+
+### January 2026 Updates
+5. **routes/auth.js** - Removed JWT secret fallbacks, added token max age enforcement
+6. **server.enhanced.js** - Removed all 5 JWT secret fallbacks
 
 ---
 

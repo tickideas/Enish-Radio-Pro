@@ -10,17 +10,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
-  Dimensions,
   AccessibilityInfo,
-  AccessibilityEvent,
   Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAudioPlayerContext } from '@/contexts/AudioPlayerContext';
-import { performanceMonitor, errorTracker } from '@/services/performance';
+import { errorTracker } from '@/services/performance';
 import { COLORS } from '@/constants/radio';
-
-const { width } = Dimensions.get('window');
 
 interface AccessibleAudioPlayerProps {
   onAccessibilityAnnouncement?: (message: string) => void;
@@ -29,10 +25,9 @@ interface AccessibleAudioPlayerProps {
 export const AccessibleAudioPlayer: React.FC<AccessibleAudioPlayerProps> = ({
   onAccessibilityAnnouncement
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
   const [announcementText, setAnnouncementText] = useState('');
   const [highContrast, setHighContrast] = useState(false);
-  const [largeText, setLargeText] = useState(false);
+  const largeText = false; // getAccessibilityScale() doesn't exist in RN
   
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
@@ -43,10 +38,6 @@ export const AccessibleAudioPlayer: React.FC<AccessibleAudioPlayerProps> = ({
   useEffect(() => {
     // Check for accessibility preferences
     const checkAccessibilityPreferences = () => {
-      AccessibilityInfo.getAccessibilityScale().then(scale => {
-        setLargeText(scale > 1.2);
-      });
-      
       AccessibilityInfo.isInvertColorsEnabled().then(setHighContrast);
     };
 
@@ -98,7 +89,7 @@ export const AccessibleAudioPlayer: React.FC<AccessibleAudioPlayerProps> = ({
       const action = audioPlayer.isPlaying ? 'Paused' : 'Playing';
       const status = audioPlayer.isLoading ? 'Loading' : audioPlayer.error ? 'Error' : 'Ready';
       announceStateChange(`${action} radio stream`, `Status: ${status}`);
-    } catch (error) {
+    } catch (_error) {
       errorTracker.logError('Play/pause failed', 'audio', 'medium');
       Alert.alert('Error', 'Unable to control playback');
     }
@@ -110,7 +101,7 @@ export const AccessibleAudioPlayer: React.FC<AccessibleAudioPlayerProps> = ({
       audioPlayer.setVolume(newVolume);
       const volumePercent = Math.round(newVolume * 100);
       announceStateChange('Volume changed', `Volume is now ${volumePercent}%`);
-    } catch (error) {
+    } catch (_error) {
       errorTracker.logError('Volume change failed', 'audio', 'low');
     }
   };
@@ -120,7 +111,7 @@ export const AccessibleAudioPlayer: React.FC<AccessibleAudioPlayerProps> = ({
     try {
       audioPlayer.retryConnection();
       announceStateChange('Retrying connection', 'Attempting to reconnect to radio stream');
-    } catch (error) {
+    } catch (_error) {
       errorTracker.logError('Retry failed', 'audio', 'medium');
     }
   };
@@ -139,16 +130,13 @@ export const AccessibleAudioPlayer: React.FC<AccessibleAudioPlayerProps> = ({
     return audioPlayer.isPlaying ? 'Playing' : 'Paused';
   };
 
-  const playerContainerStyle = [
-    styles.container,
-    highContrast && styles.highContrast,
-    largeText && styles.largeText,
-    { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
-  ];
-
   return (
-    <View 
-      style={playerContainerStyle}
+    <Animated.View 
+      style={[
+        styles.container,
+        highContrast && styles.highContrast,
+        { opacity: fadeAnim, transform: [{ scale: scaleAnim }] }
+      ]}
       accessible={true}
       accessibilityLabel="Audio player controls"
       accessibilityRole="adjustable"
@@ -292,7 +280,7 @@ export const AccessibleAudioPlayer: React.FC<AccessibleAudioPlayerProps> = ({
           </Text>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 };
 

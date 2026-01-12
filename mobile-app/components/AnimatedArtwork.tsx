@@ -7,9 +7,8 @@ import {
   ActivityIndicator,
   Dimensions,
   PanResponder,
-  TouchableWithoutFeedback,
+  DimensionValue,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/constants/radio';
 import { LinearGradient } from 'expo-linear-gradient';
 
@@ -32,7 +31,6 @@ export default function AnimatedArtwork({
   const [imageError, setImageError] = useState(false);
 
   // Animation values
-  const rotateValue = useRef(new Animated.Value(0)).current;
   const glowValue = useRef(new Animated.Value(0)).current;
   const vinylRotateValue = useRef(new Animated.Value(0)).current;
   const shineValue = useRef(new Animated.Value(0)).current;
@@ -53,15 +51,9 @@ export default function AnimatedArtwork({
         // Stop automatic rotation when user touches
         lastRotation.current = currentRotation.current;
       },
-      onPanResponderMove: (evt, gestureState) => {
+      onPanResponderMove: (_, gestureState) => {
         // Calculate rotation based on finger movement
-        const { dx, dy, moveX, moveY } = gestureState;
-        const centerX = width / 2;
-        const centerY = height * 0.25; // Approximate center of vinyl
-
-        // Calculate angle of movement
-        const angle = Math.atan2(moveY - centerY, moveX - centerX);
-        const rotation = (angle * 180) / Math.PI;
+        const { dx } = gestureState;
 
         // Update rotation
         currentRotation.current = lastRotation.current + dx * 0.5;
@@ -271,29 +263,29 @@ export default function AnimatedArtwork({
     },
     turntableBaseGradient: {
       position: 'absolute' as const,
-      width: '100%',
-      height: '100%',
+      width: '100%' as DimensionValue,
+      height: '100%' as DimensionValue,
       borderRadius: (size + 60) / 2,
     },
     woodGrainOverlay: {
       position: 'absolute' as const,
-      width: '100%',
-      height: '100%',
+      width: '100%' as DimensionValue,
+      height: '100%' as DimensionValue,
       borderRadius: (size + 60) / 2,
       overflow: 'hidden' as const,
     },
     woodGrain: {
       position: 'absolute' as const,
-      left: '15%',
-      right: '15%',
+      left: '15%' as DimensionValue,
+      right: '15%' as DimensionValue,
       height: 2,
       backgroundColor: '#654321',
       borderRadius: 1,
     },
     turntableBaseEdge: {
       position: 'absolute' as const,
-      width: '95%',
-      height: '95%',
+      width: '95%' as DimensionValue,
+      height: '95%' as DimensionValue,
       borderRadius: (size + 60) / 2,
       borderWidth: 2,
       borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -320,7 +312,7 @@ export default function AnimatedArtwork({
               style={[
                 dynamicStyles.woodGrain,
                 {
-                  top: `${15 + (i * 10)}%`,
+                  top: `${15 + (i * 10)}%` as DimensionValue,
                   opacity: 0.1 + (i % 3) * 0.05,
                 },
               ]}

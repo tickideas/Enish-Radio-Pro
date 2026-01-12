@@ -3,14 +3,10 @@ import {
   View, 
   Text, 
   StyleSheet, 
-  Animated, 
-  Dimensions,
+  Animated,
   Image
 } from 'react-native';
 import * as SplashScreen from 'expo-splash-screen';
-import { Ionicons } from '@expo/vector-icons';
-
-const { width, height } = Dimensions.get('window');
 
 interface AnimatedSplashScreenProps {
   onAnimationComplete: () => void;

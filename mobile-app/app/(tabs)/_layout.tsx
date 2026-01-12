@@ -1,30 +1,12 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Tabs, router } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { COLORS, APP_CONFIG } from '@/constants/radio';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useState, useEffect } from 'react';
+import { COLORS } from '@/constants/radio';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  const [isAdmin, setIsAdmin] = useState(false);
-
-  // Check if user is admin
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      try {
-        const adminToken = await AsyncStorage.getItem('adminToken');
-        setIsAdmin(!!adminToken);
-      } catch (error) {
-        console.error('Error checking admin status:', error);
-      }
-    };
-
-    checkAdminStatus();
-  }, []);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -46,16 +28,17 @@ export default function RootLayout() {
             tabBarIcon: ({ color, size, focused }) => (
               <Ionicons name="home" size={size} color={focused ? COLORS.PRIMARY : color} />
             ),
-            headerRight: () => (
-              isAdmin ? (
-                <TouchableOpacity
-                  style={styles.adminButton}
-                  onPress={() => router.push('/admin/login')}
-                >
-                  <Ionicons name="settings-outline" size={20} color={COLORS.PRIMARY} />
-                </TouchableOpacity>
-              ) : null
-            ),
+            // Admin navigation disabled - route not yet implemented
+            // headerRight: () => (
+            //   isAdmin ? (
+            //     <TouchableOpacity
+            //       style={styles.adminButton}
+            //       onPress={() => router.push('/admin/login')}
+            //     >
+            //       <Ionicons name="settings-outline" size={20} color={COLORS.PRIMARY} />
+            //     </TouchableOpacity>
+            //   ) : null
+            // ),
           }}
         />
         <Tabs.Screen
@@ -103,10 +86,3 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  adminButton: {
-    padding: 8,
-    marginRight: 15,
-  },
-});

@@ -79,7 +79,7 @@ class AnalyticsService {
   private userId?: string;
   private eventQueue: AnalyticsEvent[] = [];
   private isOnline = true;
-  private flushInterval?: NodeJS.Timeout;
+  private flushInterval?: ReturnType<typeof setInterval>;
   private metricsBuffer: {
     user: Partial<UserMetrics>;
     performance: Partial<PerformanceMetrics>;
