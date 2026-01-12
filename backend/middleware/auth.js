@@ -14,8 +14,13 @@ const auth = async (req, res, next) => {
 
     const token = authHeader.substring(7); // Remove 'Bearer ' from string
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    // Verify token - JWT_SECRET must be set (no fallback for security)
+    if (!process.env.JWT_SECRET) {
+      console.error('CRITICAL: JWT_SECRET environment variable is not set');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+    
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Get fresh user data from database
     const user = await UserModel.findById(decoded.id);
@@ -86,8 +91,13 @@ const optionalAuth = async (req, res, next) => {
       return next(); // Continue without user
     }
 
+    // JWT_SECRET must be set (no fallback for security)
+    if (!process.env.JWT_SECRET) {
+      return next(); // Continue without user if secret not configured
+    }
+    
     const token = authHeader.substring(7);
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
     // Get user data if token is valid
     const user = await UserModel.findById(decoded.id);

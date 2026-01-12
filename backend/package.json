@@ -8,7 +8,8 @@
     "dev": "nodemon server.hono.js",
     "create-schema": "node scripts/createSchema.js",
     "seed": "node scripts/seedDatabase.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js tests/unit",
     "test:admin": "node test-admin-interface.js",
     "test:admin:ci": "ADMIN_TEST_URL=$ADMIN_TEST_URL TEST_EMAIL=$TEST_EMAIL TEST_PASSWORD=$TEST_PASSWORD node test-admin-interface.js",
     "docker:build": "docker build -t enish-radio-backend .",
@@ -39,6 +40,7 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
+    "jest": "^30.2.0",
     "nodemon": "^3.1.11"
   }
 }

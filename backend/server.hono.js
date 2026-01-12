@@ -40,9 +40,13 @@ const PORT = parseInt(process.env.PORT || '3000', 10)
 const NODE_ENV = process.env.NODE_ENV || 'development'
 const JWT_SECRET = process.env.JWT_SECRET
 
+const JWT_EXPIRATION = '24h'
+// Maximum age for token refresh (7 days in seconds)
+const TOKEN_MAX_AGE_SECONDS = 7 * 24 * 60 * 60
 // Configure CORS origins
+// Configure CORS origins (supports both CORS_ORIGINS and ALLOWED_ORIGINS env vars for compatibility)
 const corsOrigins = NODE_ENV === 'production'
-  ? (process.env.CORS_ORIGINS ? process.env.CORS_ORIGINS.split(',') : ['https://enishradio.com'])
+  ? ((process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS) ? (process.env.CORS_ORIGINS || process.env.ALLOWED_ORIGINS).split(',') : ['https://enishradio.com'])
   : ['http://localhost:8081', 'http://192.168.1.80:8081', 'exp://192.168.1.80:8081', 'http://localhost:3000']
 
 // Global middleware
@@ -231,7 +235,7 @@ app.post('/api/auth/login', async (c) => {
 
     const payload = { id: user.id, email: user.email, role: user.role }
     const token = jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' })
-
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRATION })
     return c.json({ success: true, token, user: payload })
   } catch (error) {
     console.error('Login error:', error)
@@ -303,10 +307,17 @@ app.post('/api/auth/refresh', async (c) => {
     const token = authHeader.substring(7)
     const decoded = jwt.verify(token, JWT_SECRET, { ignoreExpiration: true })
     const user = await UserModel.findById(decoded.id)
+    
+    // Check if token is too old to refresh (max 7 days)
+    const tokenAge = Math.floor(Date.now() / 1000) - (decoded.iat || 0)
+    if (tokenAge > TOKEN_MAX_AGE_SECONDS) {
+      return c.json({ success: false, error: 'Token too old. Please log in again.' }, 401)
+    }
+    
     if (!user || !user.isActive) return c.json({ success: false, error: 'User not found or inactive' }, 401)
 
     const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' })
-    return c.json({ success: true, token: newToken })
+    const newToken = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: JWT_EXPIRATION })
   } catch (error) {
     console.error('Token refresh error:', error)
     return c.json({ success: false, error: 'Server error during token refresh' }, 500)
@@ -920,14 +931,16 @@ app.get('/api/analytics/overview', requireAdmin(), async (c) => {
     startOfMonth.setHours(0, 0, 0, 0)
 
     const totalSocialLinks = await SocialLinkModel.getAll()
+    // Run queries in parallel for better performance
+    const [totalSocialLinks, totalMenuItems, totalAds] = await Promise.all([
+      SocialLinkModel.getAll(),
+      MenuItemModel.getAll(),
+      AdBannerModel.getAll(),
+    ])
+    
     const activeSocialLinks = totalSocialLinks.filter((l) => l.isActive)
-
-    const totalMenuItems = await MenuItemModel.getAll()
     const activeMenuItems = totalMenuItems.filter((item) => item.isActive)
-
-    const totalAds = await AdBannerModel.getAll()
     const activeAds = totalAds.filter((a) => a.isActive)
-    const totalClicks = totalAds.reduce((sum, a) => sum + a.clickCount, 0)
 
     const weeklyClicks = totalAds.filter((a) => a.createdAt >= startOfWeek).reduce((sum, a) => sum + a.clickCount, 0)
     const monthlyClicks = totalAds.filter((a) => a.createdAt >= startOfMonth).reduce((sum, a) => sum + a.clickCount, 0)

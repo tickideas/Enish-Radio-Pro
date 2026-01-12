@@ -494,7 +494,7 @@ The mobile app uses a TypeScript-based environment configuration system that aut
 // Production (EAS builds, npm run build:prod)
 - Uses: mobile-app/constants/env.production.ts
 - API URL: https://api.enishradio.com/api
-- Debug mode: OFF
+- API URL: https://enish-radio-api.toovy.tech/api
 - Analytics: ON
 ```
 

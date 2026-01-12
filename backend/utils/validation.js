@@ -14,13 +14,15 @@ export function isValidEmail(email) {
 
 /**
  * Validate URL format
+ * Only allows http and https protocols for security
  * @param {string} url - URL to validate
  * @returns {boolean}
  */
 export function isValidUrl(url) {
   try {
-    new URL(url);
-    return true;
+    const parsed = new URL(url);
+    // Only allow http and https protocols to prevent javascript:, data:, file: etc.
+    return ['http:', 'https:'].includes(parsed.protocol);
   } catch {
     return false;
   }
