@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { DeviceEventEmitter } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { v4 as uuidv4 } from 'uuid';
+import * as Crypto from 'expo-crypto';
 
 export interface AnalyticsEvent {
   id: string;
@@ -86,7 +86,7 @@ class AnalyticsService {
   };
 
   constructor() {
-    this.sessionId = uuidv4();
+    this.sessionId = Crypto.randomUUID();
     this.metricsBuffer = {
       user: {},
       performance: {}
@@ -104,7 +104,7 @@ class AnalyticsService {
       if (storedUserId) {
         this.userId = storedUserId;
       } else {
-        this.userId = `anon_${uuidv4()}`;
+        this.userId = `anon_${Crypto.randomUUID()}`;
         await AsyncStorage.setItem('analytics_user_id', this.userId);
       }
 
@@ -167,7 +167,7 @@ class AnalyticsService {
 
   private createEvent(eventType: string, eventName: string, properties: Record<string, any>): AnalyticsEvent {
     return {
-      id: uuidv4(),
+      id: Crypto.randomUUID(),
       timestamp: new Date(),
       userId: this.userId,
       sessionId: this.sessionId,

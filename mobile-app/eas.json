@@ -16,9 +16,13 @@
     },
     "production": {
       "autoIncrement": true,
+      "env": {
+        "EXPO_NO_BUNDLE_SPLITTING": "false"
+      },
       "android": {
         "buildType": "app-bundle",
-        "resourceClass": "medium"
+        "resourceClass": "medium",
+        "gradleCommand": ":app:bundleRelease"
       },
       "ios": {
         "buildConfiguration": "Release",

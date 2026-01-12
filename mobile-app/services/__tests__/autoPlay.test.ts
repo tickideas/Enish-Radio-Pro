@@ -1,14 +1,32 @@
 import { renderHook, act } from '@testing-library/react-native';
 import { useAudioPlayer } from '@/hooks/useAudioPlayer';
-import { CacheService } from '@/services/cache';
 
-// Mock the dependencies
-jest.mock('expo-av', () => ({
-  Audio: {
-    setAudioModeAsync: jest.fn(),
-    Sound: {
-      createAsync: jest.fn(),
-    },
+// Mock expo-audio
+const mockPlayer = {
+  play: jest.fn(),
+  pause: jest.fn(),
+  seekTo: jest.fn(),
+  replace: jest.fn(),
+  release: jest.fn(),
+  volume: 1.0,
+  loop: false,
+};
+
+jest.mock('expo-audio', () => ({
+  useAudioPlayer: jest.fn(() => mockPlayer),
+  useAudioPlayerStatus: jest.fn(() => ({
+    playing: false,
+    isLoaded: true,
+    isBuffering: false,
+    currentTime: 0,
+    duration: 0,
+  })),
+  setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+}));
+
+jest.mock('@/services/cache', () => ({
+  CacheService: {
+    getAutoPlaySetting: jest.fn().mockResolvedValue(false),
   },
 }));
 
@@ -17,6 +35,17 @@ jest.mock('@/constants/radio', () => ({
     PRIMARY_MP3: 'https://test-stream.com',
     FALLBACK_M3U: 'https://test-fallback.com',
   },
+  AUDIO_CONFIG: {
+    RECONNECT_ATTEMPTS: 3,
+    RECONNECT_DELAY: 1000,
+  },
+}));
+
+jest.mock('@/services/radioKing', () => ({
+  RadioKingService: {
+    getCurrentTrack: jest.fn().mockResolvedValue({ success: false }),
+    convertToAppFormat: jest.fn(),
+  },
 }));
 
 describe('Auto Play Functionality', () => {
@@ -24,76 +53,50 @@ describe('Auto Play Functionality', () => {
     jest.clearAllMocks();
   });
 
-  it('should attempt auto-play when enabled in settings', async () => {
-    // Mock cache service to return auto-play enabled
-    const mockGetAutoPlaySetting = jest.fn().mockResolvedValue(true);
-    const mockSetAutoPlaySetting = jest.fn();
-    
-    // Mock the dynamic import
-    jest.doMock('@/services/cache', () => ({
-      CacheService: {
-        getAutoPlaySetting: mockGetAutoPlaySetting,
-        setAutoPlaySetting: mockSetAutoPlaySetting,
-      },
-    }));
-
-    // Render the hook
+  it('should provide triggerAutoPlay method', () => {
     const { result } = renderHook(() => useAudioPlayer());
 
-    // Wait for async operations
-    await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 1100)); // Wait for auto-play timeout
-    });
-
-    // Verify auto-play was attempted
-    expect(mockGetAutoPlaySetting).toHaveBeenCalled();
+    expect(typeof result.current.triggerAutoPlay).toBe('function');
   });
 
-  it('should not attempt auto-play when disabled in settings', async () => {
-    // Mock cache service to return auto-play disabled
-    const mockGetAutoPlaySetting = jest.fn().mockResolvedValue(false);
-    
-    jest.doMock('@/services/cache', () => ({
-      CacheService: {
-        getAutoPlaySetting: mockGetAutoPlaySetting,
-      },
-    }));
-
-    // Render the hook
+  it('should handle triggerAutoPlay correctly', async () => {
     const { result } = renderHook(() => useAudioPlayer());
 
-    // Wait for async operations
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 1100)); // Wait for auto-play timeout
+      await result.current.triggerAutoPlay();
     });
 
-    // Verify auto-play was not attempted
-    expect(mockGetAutoPlaySetting).toHaveBeenCalled();
+    expect(mockPlayer.replace).toHaveBeenCalled();
+    expect(result.current.isPlaying).toBe(true);
   });
 
-  it('should handle auto-play failure gracefully', async () => {
-    // Mock cache service to return auto-play enabled
-    const mockGetAutoPlaySetting = jest.fn().mockResolvedValue(true);
-    
-    // Mock Sound.createAsync to throw an error
-    const { Audio } = require('expo-av');
-    Audio.Sound.createAsync.mockRejectedValue(new Error('Stream unavailable'));
-    
-    jest.doMock('@/services/cache', () => ({
-      CacheService: {
-        getAutoPlaySetting: mockGetAutoPlaySetting,
-      },
-    }));
-
-    // Render the hook
+  it('should not trigger auto-play twice', async () => {
     const { result } = renderHook(() => useAudioPlayer());
 
-    // Wait for async operations
     await act(async () => {
-      await new Promise(resolve => setTimeout(resolve, 1100)); // Wait for auto-play timeout
+      await result.current.triggerAutoPlay();
     });
 
-    // Should not throw error and should handle gracefully
-    expect(mockGetAutoPlaySetting).toHaveBeenCalled();
+    mockPlayer.replace.mockClear();
+
+    await act(async () => {
+      await result.current.triggerAutoPlay();
+    });
+
+    expect(mockPlayer.replace).not.toHaveBeenCalled();
+  });
+
+  it('should handle triggerAutoPlay failure gracefully', async () => {
+    mockPlayer.replace.mockImplementationOnce(() => {
+      throw new Error('Stream unavailable');
+    });
+
+    const { result } = renderHook(() => useAudioPlayer());
+
+    await act(async () => {
+      await result.current.triggerAutoPlay();
+    });
+
+    expect(result.current.error).toBe('Failed to load radio stream');
   });
 });

@@ -57,14 +57,9 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
-          "android": {
-            "allowsBackgroundPlayback": true,
-            "audioFocus": true,
-            "useForegroundService": true,
-            "foregroundServiceType": "mediaPlayback"
-          }
+          "microphonePermission": false
         }
       ],
       "expo-asset"
